@@ -20,8 +20,8 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 	const int kWindowHeight = 720;
 	Vector3 kLocalVertices[3] = {
 	    {0.0f,  0.5f,  0.0f},
-        {-0.5f, -0.5f, 0.0f},
-        {0.5f,  -0.5f, 0.0f}
+        {0.5f, -0.5f, 0.0f},
+        {-0.5f,  -0.5f, 0.0f}
     };
 
 	// キー入力結果を受け取る箱
