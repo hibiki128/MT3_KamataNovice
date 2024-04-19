@@ -3,7 +3,7 @@
 #include "Novice.h"
 #include "Vector3.h"
 #include "assert.h"
-#include "math.h"
+#include "cmath"
 
 static const int kColumnWidth = 60;
 static const int kRowHeight = 20;
@@ -53,17 +53,29 @@ Matrix4x4 Transpose(const Matrix4x4& m);
 // 単位行列の作成
 Matrix4x4 MakeIdentity4x4();
 
+// X軸回転行列
+Matrix4x4 MakeRotateXMatrix(float radian);
+// Y軸回転行列							
+Matrix4x4 MakeRotateYMatrix(float radian);
+// Z軸回転行列							
+Matrix4x4 MakeRotateZMatrix(float radian);
+
+Matrix4x4 MakeAffineMatrix(const Vector3& scale, const Vector3& rotate, const Vector3& translate);
+
 // tanθの逆数
 float cotf(float theta);
 
-// 1,透視投影行列
+// 透視投影行列
 Matrix4x4 MakePerspectiveFovMatrix(float fovY, float aspectRatio, float nearClip, float farClip);
 
-// 2,正射影行列
+// 正射影行列
 Matrix4x4 MakeOrthographicMatrix(float left, float top, float right, float bottom, float nearClip, float farClip);
 
-// 3,ビューポート変換行列
+// ビューポート変換行列
 Matrix4x4 MakeViewPortMatrix(float left, float top, float width, float height, float minDepth, float maxDepth);
+
+// クロス積
+Vector3 Cross(const Vector3& v1, const Vector3& v2);
 
 // デバッグ用
 void VectorScreenPrintf(int x, int y, const Vector3& vector, const char* label);

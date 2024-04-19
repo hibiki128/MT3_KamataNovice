@@ -55,7 +55,7 @@ Matrix4x4 MakeTranslateMatrix(const Vector3& translate)
 	return Matrix4x4(
 		1, 0, 0, 0,
 		0, 1, 0, 0,
-		0, 0, 0, 0,
+		0, 0, 1, 0,
 		translate.x, translate.y, translate.z, 1);
 }
 
@@ -190,7 +190,25 @@ Matrix4x4 MakeIdentity4x4()
 		0, 0, 1, 0,
 		0, 0, 0, 1); }
 
-float cotf(float theta) { return 1.0f / tanf(theta); }
+
+Matrix4x4 MakeRotateXMatrix(float radian) { return {1, 0, 0, 0, 0, std::cosf(radian), std::sinf(radian), 0, 0, std::sinf(-radian), std::cosf(radian), 0, 0, 0, 0, 1}; };
+
+Matrix4x4 MakeRotateYMatrix(float radian) { return {std::cosf(radian), 0, std::sinf(-radian), 0, 0, 1, 0, 0, std::sinf(radian), 0, std::cosf(radian), 0, 0, 0, 0, 1}; };
+
+Matrix4x4 MakeRotateZMatrix(float radian) { return {std::cosf(radian), std::sinf(radian), 0, 0, std::sinf(-radian), std::cosf(radian), 0, 0, 0, 0, 1, 0, 0, 0, 0, 1}; };
+
+Matrix4x4 MakeAffineMatrix(const Vector3& scale, const Vector3& rotate, const Vector3& translate) {
+	Matrix4x4 scaleMatrix = MakeScaleMatrix(scale);
+	Matrix4x4 rotateXMatrix = MakeRotateXMatrix(rotate.x);
+	Matrix4x4 rotateYMatrix = MakeRotateYMatrix(rotate.y);
+	Matrix4x4 rotateZMatrix = MakeRotateZMatrix(rotate.z);
+	Matrix4x4 translateMatrix = MakeTranslateMatrix(translate);
+	Matrix4x4 rotateMatrix = Multiply(Multiply(rotateXMatrix, rotateYMatrix), rotateZMatrix);
+
+	return {Multiply(Multiply(scaleMatrix, rotateMatrix), translateMatrix)};
+}
+
+float cotf(float theta) { return 1.0f / std::tanf(theta); }
 
 
 Matrix4x4 MakePerspectiveFovMatrix(float fovY, float aspectRatio, float nearClip, float farClip) {
@@ -215,7 +233,8 @@ Matrix4x4 MakeViewPortMatrix(float left, float top, float width, float height, f
 		0, -height / 2.0f, 0, 0,
 		0, 0, maxDepth - minDepth, 0, 
 		left + width / 2.0f, top + height / 2.0f, minDepth, 1.0f);
-};
+}
+Vector3 Cross(const Vector3& v1, const Vector3& v2);
 
 void VectorScreenPrintf(int x, int y, const Vector3& vector, const char* label)
 {
