@@ -6,7 +6,11 @@ struct Matrix4x4 {
 	float m[4][4];
 };
 // 1,平行移動行列
-Matrix4x4 MakeTranslateMatrix(const Vector3& translate) { return {1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, translate.x, translate.y, translate.z, 1}; };
+Matrix4x4 MakeTranslateMatrix(const Vector3& translate) { return {
+	1, 0, 0, 0,
+	0, 1, 0, 0,
+	0, 0, 1, 0,
+	translate.x, translate.y, translate.z, 1}; };
 // 2,拡大縮小行列
 Matrix4x4 MakeScaleMatrix(const Vector3& scale) { return {scale.x, 0, 0, 0, 0, scale.y, 0, 0, 0, 0, scale.z, 0, 0, 0, 0, 1}; };
 // 3,座標変換
