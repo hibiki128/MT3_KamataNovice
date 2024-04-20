@@ -16,12 +16,13 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 	Vector3 rotate{};
 	Vector3 translate{};
 	Vector3 cameraPosition{0.0f, 0.0f, -10.0f};
+	Vector3 cameraDot{0.0f, 0.0f, 1.0f};
 	const int kWindowWidth = 1280;
 	const int kWindowHeight = 720;
 	Vector3 kLocalVertices[3] = {
 	    {0.0f,  0.5f,  0.0f},
-        {0.5f, -0.5f, 0.0f},
-        {-0.5f,  -0.5f, 0.0f}
+        {0.5f,  -0.5f, 0.0f},
+        {-0.5f, -0.5f, 0.0f}
     };
 
 	// キー入力結果を受け取る箱
@@ -72,6 +73,11 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 			screenVertices[i] = Transform(ndcVertex, viewportMatrix);
 		}
 
+		Vector3 crossV1 = Subtract(screenVertices[1], screenVertices[0]);
+		Vector3 crossV2 = Subtract(screenVertices[2], screenVertices[1]);
+		Vector3 crossDt = Cross(crossV1, crossV2);
+		float dot = Dot(cameraDot, crossDt);
+
 		///
 		/// ↑更新処理ここまで
 		///
@@ -81,9 +87,11 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 		///
 
 		VectorScreenPrintf(0, 0, cross, "Cross");
-		Novice::DrawTriangle(
-		    int(screenVertices[0].x), int(screenVertices[0].y), int(screenVertices[1].x), int(screenVertices[1].y),
-			int(screenVertices[2].x), int(screenVertices[2].y), RED, kFillModeSolid);
+		if (dot <= 0) {
+			Novice::DrawTriangle(
+			    int(screenVertices[0].x), int(screenVertices[0].y), int(screenVertices[1].x), int(screenVertices[1].y),
+				int(screenVertices[2].x), int(screenVertices[2].y), RED, kFillModeSolid);
+		}
 
 		///
 		/// ↑描画処理ここまで
