@@ -16,7 +16,6 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 	Vector3 rotate{};
 	Vector3 translate{};
 	Vector3 cameraPosition{0.0f, 0.0f, -10.0f};
-	Vector3 cameraDot{0.0f, 0.0f, -1.0f};
 	const int kWindowWidth = 1280;
 	const int kWindowHeight = 720;
 	Vector3 kLocalVertices[3] = {
@@ -76,7 +75,7 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 		Vector3 crossV1 = Subtract(screenVertices[1], screenVertices[0]);
 		Vector3 crossV2 = Subtract(screenVertices[2], screenVertices[1]);
 		Vector3 crossDt = Cross(crossV1, crossV2);
-		float dot = Dot(cameraDot, crossDt);
+		float dot = Dot(cameraPosition, crossDt);
 
 		///
 		/// ↑更新処理ここまで
