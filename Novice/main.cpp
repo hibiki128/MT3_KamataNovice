@@ -16,7 +16,7 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 	Vector3 rotate{};
 	Vector3 translate{};
 	Vector3 cameraPosition{0.0f, 0.0f, -10.0f};
-	Vector3 cameraDot{0.0f, 0.0f, 1.0f};
+	Vector3 cameraDot{0.0f, 0.0f, -1.0f};
 	const int kWindowWidth = 1280;
 	const int kWindowHeight = 720;
 	Vector3 kLocalVertices[3] = {
