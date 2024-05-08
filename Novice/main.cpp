@@ -1,7 +1,7 @@
 #include "Matrix/M4x4.h"
 #include "Matrix4x4.h"
+#include "imgui.h"
 #include <Novice.h>
-#include"imgui.h"
 #define _USE_MATH_DEFINES
 #include "math.h"
 
@@ -9,7 +9,7 @@ const char kWindowTitle[] = "LE2B_20_ハギワラ_ヒビキ";
 
 struct Sphere {
 	Vector3 center; // !< 中心点
-	float radius; // !< 半径
+	float radius;   // !< 半径
 };
 
 void DrawGrid(const Matrix4x4& viewProjectionMatrix, const Matrix4x4& viewportMatrix) {
@@ -31,7 +31,7 @@ void DrawGrid(const Matrix4x4& viewProjectionMatrix, const Matrix4x4& viewportMa
 		Vector3 screenStartPos = Transform(clipStartPos, viewportMatrix);
 		Vector3 screenEndPos = Transform(clipEndPos, viewportMatrix);
 
-		 // 真ん中の線を黒で描画
+		// 真ん中の線を黒で描画
 		if (xIndex == kSubdivision / 2 && kSubdivision % 2 == 0) {
 			Novice::DrawLine(int(screenStartPos.x), int(screenStartPos.y), int(screenEndPos.x), int(screenEndPos.y), 0x000000FF); // 黒色で描画
 		} else {
@@ -53,7 +53,7 @@ void DrawGrid(const Matrix4x4& viewProjectionMatrix, const Matrix4x4& viewportMa
 		Vector3 screenStartPos = Transform(clipStartPos, viewportMatrix);
 		Vector3 screenEndPos = Transform(clipEndPos, viewportMatrix);
 
-		 // 真ん中の線を黒で描画
+		// 真ん中の線を黒で描画
 		if (yIndex == kSubdivision / 2 && kSubdivision % 2 == 0) {
 			Novice::DrawLine(int(screenStartPos.x), int(screenStartPos.y), int(screenEndPos.x), int(screenEndPos.y), 0x000000FF); // 黒色で描画
 		} else {
@@ -74,7 +74,7 @@ void DrawGrid(const Matrix4x4& viewProjectionMatrix, const Matrix4x4& viewportMa
 		Vector3 screenStartPos = Transform(clipStartPos, viewportMatrix);
 		Vector3 screenEndPos = Transform(clipEndPos, viewportMatrix);
 
-		 // 真ん中の線を黒で描画
+		// 真ん中の線を黒で描画
 		if (zIndex == kSubdivision / 2 && kSubdivision % 2 == 0) {
 			Novice::DrawLine(int(screenStartPos.x), int(screenStartPos.y), int(screenEndPos.x), int(screenEndPos.y), 0x000000FF); // 黒色で描画
 		} else {
@@ -140,6 +140,8 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 	// ライブラリの初期化
 	Novice::Initialize(kWindowTitle, 1280, 720);
 
+	Vector3 rotate{};
+	Vector3 translate{};
 	Vector3 cameraRotate{};
 	Vector3 cameraTranslate{};
 	Vector3 cameraPosition{0.0f, 1.0f, -5.0f};
@@ -166,7 +168,7 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 		/// ↓更新処理ここから
 		///
 
-		Matrix4x4 worldMatrix = MakeAffineMatrix({1.0f, 1.0f, 1.0f}, cameraRotate, cameraTranslate);
+		Matrix4x4 worldMatrix = MakeAffineMatrix({1.0f, 1.0f, 1.0f}, rotate, translate);
 		Matrix4x4 cameraMatrix = MakeAffineMatrix({1.0f, 1.0f, 1.0f}, {0.0f, 0.0f, 0.0f}, cameraPosition);
 		Matrix4x4 viewMatrix = Inverse(cameraMatrix);
 		Matrix4x4 projectionMatrix = MakePerspectiveFovMatrix(0.45f, float(kWindowWidth) / float(kWindowHeight), 0.1f, 100.0f);
