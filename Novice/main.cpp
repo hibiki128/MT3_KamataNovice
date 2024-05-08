@@ -2,7 +2,7 @@
 #include "Matrix4x4.h"
 #include <Novice.h>
 #include"imgui.h"
-#define _USE_DEFINE_MATH
+#define _USE_MATH_DEFINES
 #include "math.h"
 
 const char kWindowTitle[] = "LE2B_20_ハギワラ_ヒビキ";
@@ -83,13 +83,54 @@ void DrawGrid(const Matrix4x4& viewProjectionMatrix, const Matrix4x4& viewportMa
 	}
 }
 
-void DrawSphere(const Sphere& sphere, const Matrix4x4& viewProjectionMatrix, const Matrix4x4& viewportMarix, uint32_t color) { 
-	const uint32_t kSubdivision = 10; // 分割数
-	const float kLonEvery = 0; // 経度分割1つ分の角度
-	const float kLatEvery = 0; // 緯度分割1つ分の角度
+void DrawSphere(const Sphere& sphere, const Matrix4x4& viewProjectionMatrix, const Matrix4x4& viewportMarix, uint32_t color) {
+	const uint32_t kSubdivision = 10;                          // 分割数
+	const float kLonEvery = 2.0f * float(M_PI) / kSubdivision; // 経度分割1つ分の角度
+	const float kLatEvery = float(M_PI) / kSubdivision;        // 緯度分割1つ分の角度
+
 	// 緯度の方向に分割　-π/2 ～ π/2
 	for (uint32_t latIndex = 0; latIndex < kSubdivision; ++latIndex) {
-		float lat = -float(M_PI)
+		float lat = -float(M_PI) / 2.0f + kLatEvery * latIndex; // 現在の緯度
+
+		// 経度の方向に分割 0 ～ 2π
+		for (uint32_t lonIndex = 0; lonIndex < kSubdivision; ++lonIndex) {
+			float lon = lonIndex * kLonEvery; // 現在の経度
+
+			// 現在の点を求める
+			float x1 = sphere.center.x + sphere.radius * cos(lat) * cos(lon);
+			float y1 = sphere.center.y + sphere.radius * cos(lat) * sin(lon);
+			float z1 = sphere.center.z + sphere.radius * sin(lat);
+
+			// 次の点を求める（経度方向）
+			float x2 = sphere.center.x + sphere.radius * cos(lat) * cos(lon + kLonEvery);
+			float y2 = sphere.center.y + sphere.radius * cos(lat) * sin(lon + kLonEvery);
+			float z2 = sphere.center.z + sphere.radius * sin(lat);
+
+			// 次の点を求める（緯度方向）
+			float x3 = sphere.center.x + sphere.radius * cos(lat + kLatEvery) * cos(lon);
+			float y3 = sphere.center.y + sphere.radius * cos(lat + kLatEvery) * sin(lon);
+			float z3 = sphere.center.z + sphere.radius * sin(lat + kLatEvery);
+
+			// 3D座標をVector3にセット
+			Vector3 start1(x1, y1, z1);
+			Vector3 end1(x2, y2, z2);
+			Vector3 start2(x1, y1, z1);
+			Vector3 end2(x3, y3, z3);
+
+			// 座標変換を行う
+			start1 = Transform(start1, viewProjectionMatrix);
+			start1 = Transform(start1, viewportMarix);
+			end1 = Transform(end1, viewProjectionMatrix);
+			end1 = Transform(end1, viewportMarix);
+			start2 = Transform(start2, viewProjectionMatrix);
+			start2 = Transform(start2, viewportMarix);
+			end2 = Transform(end2, viewProjectionMatrix);
+			end2 = Transform(end2, viewportMarix);
+
+			// 線を描画
+			Novice::DrawLine(int(start1.x), int(start1.y), int(end1.x), int(end1.y), color);
+			Novice::DrawLine(int(start2.x), int(start2.y), int(end2.x), int(end2.y), color);
+		}
 	}
 }
 
@@ -104,6 +145,9 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 	Vector3 cameraPosition{0.0f, 1.0f, -5.0f};
 	const int kWindowWidth = 1280;
 	const int kWindowHeight = 720;
+	Sphere sphere;
+	sphere.center = {0, 0, 0};
+	sphere.radius = 1;
 
 	// キー入力結果を受け取る箱
 	char keys[256] = {0};
@@ -142,8 +186,11 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 		ImGui::Begin("Window");
 		ImGui::DragFloat3("CameraTranslate", &cameraTranslate.x, 0.01f);
 		ImGui::DragFloat3("CameraRotate", &cameraRotate.x, 0.01f);
+		ImGui::DragFloat3("SphereCenter", &sphere.center.x, 0.01f);
+		ImGui::DragFloat("SphereRadius", &sphere.radius, 0.01f);
 		ImGui::End();
 		DrawGrid(worldViewProjectionMatrix, viewportMatrix);
+		DrawSphere(sphere, worldViewProjectionMatrix, viewportMatrix, BLACK);
 
 		///
 		/// ↑描画処理ここまで
