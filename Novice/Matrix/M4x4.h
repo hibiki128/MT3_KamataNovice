@@ -59,6 +59,8 @@ Matrix4x4 MakeRotateXMatrix(float radian);
 Matrix4x4 MakeRotateYMatrix(float radian);
 // Z軸回転行列							
 Matrix4x4 MakeRotateZMatrix(float radian);
+// X,Y,Z軸回転行列を合成した行列
+Matrix4x4 MakeRotateXYZMatrix(Vector3& radian);
 
 Matrix4x4 MakeAffineMatrix(const Vector3& scale, const Vector3& rotate, const Vector3& translate);
 

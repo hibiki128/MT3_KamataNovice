@@ -3,6 +3,7 @@
 #include "imgui.h"
 #include <Novice.h>
 #define _USE_MATH_DEFINES
+#include "cmath"
 #include "math.h"
 
 const char kWindowTitle[] = "LE2B_20_ハギワラ_ヒビキ";
@@ -97,39 +98,36 @@ void DrawSphere(const Sphere& sphere, const Matrix4x4& viewProjectionMatrix, con
 			float lon = lonIndex * kLonEvery; // 現在の経度
 
 			// 現在の点を求める
-			float x1 = sphere.center.x + sphere.radius * cos(lat) * cos(lon);
-			float y1 = sphere.center.y + sphere.radius * cos(lat) * sin(lon);
-			float z1 = sphere.center.z + sphere.radius * sin(lat);
+			float x1 = sphere.center.x + sphere.radius * std::cosf(lat) * std::cosf(lon);
+			float y1 = sphere.center.y + sphere.radius * std::sinf(lat);
+			float z1 = sphere.center.z + sphere.radius * std::cosf(lat) * std::sinf(lon);
 
 			// 次の点を求める（経度方向）
-			float x2 = sphere.center.x + sphere.radius * cos(lat) * cos(lon + kLonEvery);
-			float y2 = sphere.center.y + sphere.radius * cos(lat) * sin(lon + kLonEvery);
-			float z2 = sphere.center.z + sphere.radius * sin(lat);
+			float x2 = sphere.center.x + sphere.radius * std::cosf(lat) * std::cosf(lon + kLonEvery);
+			float y2 = sphere.center.y + sphere.radius * std::sinf(lat);
+			float z2 = sphere.center.z + sphere.radius * std::cosf(lat) * std::sinf(lon + kLonEvery);
 
 			// 次の点を求める（緯度方向）
-			float x3 = sphere.center.x + sphere.radius * cos(lat + kLatEvery) * cos(lon);
-			float y3 = sphere.center.y + sphere.radius * cos(lat + kLatEvery) * sin(lon);
-			float z3 = sphere.center.z + sphere.radius * sin(lat + kLatEvery);
+			float x3 = sphere.center.x + sphere.radius * std::cosf(lat + kLatEvery) * std::cosf(lon);
+			float y3 = sphere.center.y + sphere.radius * std::sinf(lat + kLatEvery);
+			float z3 = sphere.center.z + sphere.radius * std::cosf(lat + kLatEvery) * std::sinf(lon);
 
 			// 3D座標をVector3にセット
-			Vector3 start1(x1, y1, z1);
+			Vector3 start(x1, y1, z1);
 			Vector3 end1(x2, y2, z2);
-			Vector3 start2(x1, y1, z1);
 			Vector3 end2(x3, y3, z3);
 
 			// 座標変換を行う
-			start1 = Transform(start1, viewProjectionMatrix);
-			start1 = Transform(start1, viewportMarix);
+			start = Transform(start, viewProjectionMatrix);
+			start = Transform(start, viewportMarix);
 			end1 = Transform(end1, viewProjectionMatrix);
 			end1 = Transform(end1, viewportMarix);
-			start2 = Transform(start2, viewProjectionMatrix);
-			start2 = Transform(start2, viewportMarix);
 			end2 = Transform(end2, viewProjectionMatrix);
 			end2 = Transform(end2, viewportMarix);
 
 			// 線を描画
-			Novice::DrawLine(int(start1.x), int(start1.y), int(end1.x), int(end1.y), color);
-			Novice::DrawLine(int(start2.x), int(start2.y), int(end2.x), int(end2.y), color);
+			Novice::DrawLine(int(start.x), int(start.y), int(end1.x), int(end1.y), color);
+			Novice::DrawLine(int(start.x), int(start.y), int(end2.x), int(end2.y), color);
 		}
 	}
 }
@@ -140,10 +138,8 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 	// ライブラリの初期化
 	Novice::Initialize(kWindowTitle, 1280, 720);
 
-	Vector3 rotate{};
-	Vector3 translate{};
-	Vector3 cameraRotate{};
-	Vector3 cameraTranslate{};
+	Vector3 cameraTranslate{0.0f, 1.9f, -6.49f};
+	Vector3 cameraRotate{0.26f, 0.0f, 0.0f};
 	Vector3 cameraPosition{0.0f, 1.0f, -5.0f};
 	const int kWindowWidth = 1280;
 	const int kWindowHeight = 720;
@@ -168,12 +164,10 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 		/// ↓更新処理ここから
 		///
 
-		Matrix4x4 worldMatrix = MakeAffineMatrix({1.0f, 1.0f, 1.0f}, rotate, translate);
-		Matrix4x4 cameraMatrix = MakeAffineMatrix({1.0f, 1.0f, 1.0f}, {0.0f, 0.0f, 0.0f}, cameraPosition);
+		Matrix4x4 cameraMatrix = MakeAffineMatrix({1.0f, 1.0f, 1.0f}, cameraRotate, Add(cameraPosition, cameraTranslate));
 		Matrix4x4 viewMatrix = Inverse(cameraMatrix);
 		Matrix4x4 projectionMatrix = MakePerspectiveFovMatrix(0.45f, float(kWindowWidth) / float(kWindowHeight), 0.1f, 100.0f);
-		// WVPMatrixを作る
-		Matrix4x4 worldViewProjectionMatrix = Multiply(worldMatrix, Multiply(viewMatrix, projectionMatrix));
+		Matrix4x4 ViewProjectionMatrix = Multiply(viewMatrix, projectionMatrix);
 		// ViewportMatrixを作る
 		Matrix4x4 viewportMatrix = MakeViewPortMatrix(0, 0, float(kWindowWidth), float(kWindowHeight), 0.0f, 1.0f);
 
@@ -191,8 +185,8 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 		ImGui::DragFloat3("SphereCenter", &sphere.center.x, 0.01f);
 		ImGui::DragFloat("SphereRadius", &sphere.radius, 0.01f);
 		ImGui::End();
-		DrawGrid(worldViewProjectionMatrix, viewportMatrix);
-		DrawSphere(sphere, worldViewProjectionMatrix, viewportMatrix, BLACK);
+		DrawGrid(ViewProjectionMatrix, viewportMatrix);
+		DrawSphere(sphere, ViewProjectionMatrix, viewportMatrix, BLACK);
 
 		///
 		/// ↑描画処理ここまで
