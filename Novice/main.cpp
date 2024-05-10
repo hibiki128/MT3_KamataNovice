@@ -40,11 +40,11 @@ void DrawGrid(const Matrix4x4& viewProjectionMatrix, const Matrix4x4& viewportMa
 		}
 	}
 
-	// 左右の線を引くためにyIndexのループも同様に処理
-	for (uint32_t yIndex = 0; yIndex <= kSubdivision; ++yIndex) {
+	// 左右の線を引くためにzIndexのループも同様に処理
+	for (uint32_t zIndex = 0; zIndex <= kSubdivision; ++zIndex) {
 		// ワールド座標系上の始点と終点を求める
-		Vector3 worldStartPos = {-kGridHalfWidth, 0.0f, -kGridHalfWidth + yIndex * kGridEvery};
-		Vector3 worldEndPos = {kGridHalfWidth, 0.0f, -kGridHalfWidth + yIndex * kGridEvery};
+		Vector3 worldStartPos = {-kGridHalfWidth, 0.0f, -kGridHalfWidth + zIndex * kGridEvery};
+		Vector3 worldEndPos = {kGridHalfWidth, 0.0f, -kGridHalfWidth + zIndex * kGridEvery};
 
 		// ビュープロジェクションマトリックスを使ってクリップ座標系に変換
 		Vector3 clipStartPos = Transform(worldStartPos, viewProjectionMatrix);
@@ -55,7 +55,7 @@ void DrawGrid(const Matrix4x4& viewProjectionMatrix, const Matrix4x4& viewportMa
 		Vector3 screenEndPos = Transform(clipEndPos, viewportMatrix);
 
 		// 真ん中の線を黒で描画
-		if (yIndex == kSubdivision / 2 && kSubdivision % 2 == 0) {
+		if (zIndex == kSubdivision / 2 && kSubdivision % 2 == 0) {
 			Novice::DrawLine(int(screenStartPos.x), int(screenStartPos.y), int(screenEndPos.x), int(screenEndPos.y), 0x000000FF); // 黒色で描画
 		} else {
 			Novice::DrawLine(int(screenStartPos.x), int(screenStartPos.y), int(screenEndPos.x), int(screenEndPos.y), 0xAAAAAAFF); // グレーで描画
