@@ -21,18 +21,18 @@ struct Segment {
 };
 
 Vector3 Project(const Vector3& v1, const Vector3& v2) {
-	float dot = Vector3::Dot(v1, v2);
-	float Length = v2.Length();
-	float scalar = dot / Length;
+	float dot = Dot(v1, v2);
+	float magSquared = magnitudeSquared(v2);
+	float scalar = dot / magSquared;
 	return {v2.x * scalar, v2.y * scalar, v2.z * scalar};
 }
 
 // 線分と点の最近接点を計算する関数
 Vector3 ClosestPoint(const Vector3& point, const Segment& segment) {
 	Vector3 pointOnLine = segment.origin; // 直線上の任意の点はセグメントの始点と同じと仮定
-	float dot = Vector3::Dot(segment.diff, point - pointOnLine);
-	float Length = segment.diff.Length();
-	float t = dot / Length;
+	float dot = Dot(segment.diff, point-pointOnLine);
+	float magSquared = magnitudeSquared(segment.diff);
+	float t = dot / magSquared;
 	return {pointOnLine.x + segment.diff.x * t, pointOnLine.y + segment.diff.y * t, pointOnLine.z + segment.diff.z * t};
 }
 
@@ -102,9 +102,9 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 		ImGui::InputFloat3("Project", &project.x, "%.3f", ImGuiInputTextFlags_ReadOnly);
 		ImGui::End();
 		DrawGrid(ViewProjectionMatrix, viewportMatrix);
+		Novice::DrawLine(int(start.x), int(start.y), int(end.x), int(end.y), WHITE);
 		DrawSphere(pointSphere, ViewProjectionMatrix, viewportMatrix, RED);
 		DrawSphere(closestPointSphere, ViewProjectionMatrix, viewportMatrix, BLACK);
-		Novice::DrawLine(int(start.x), int(start.y), int(end.x), int(end.y), WHITE);
 
 		///
 		/// ↑描画処理ここまで

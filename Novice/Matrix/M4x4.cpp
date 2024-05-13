@@ -1,5 +1,25 @@
 #include "M4x4.h"
 
+float Dot(const Vector3& v1, const Vector3& v2) { return {v1.x * v2.x + v1.y * v2.y + v1.z * v2.z}; }
+
+float Length(const Vector3& v) { return std::sqrt(v.x * v.x + v.y * v.y + v.z * v.z); }
+
+Vector3 Cross(const Vector3& v1, const Vector3& v2) { return {v1.y * v2.z - v1.z * v2.y, v1.z * v2.x - v1.x * v2.z, v1.x * v2.y - v1.y * v2.x}; };
+
+// ベクトルの大きさの2乗を計算する関数
+float magnitudeSquared(const Vector3& v) { return v.x * v.x + v.y * v.y + v.z * v.z; }
+
+// ベクトルの大きさを計算する関数
+float magnitude(const Vector3& v) { return std::sqrt(magnitudeSquared(v)); }
+
+// ベクトルの正規化を行う関数
+Vector3 normalize(const Vector3& v) {
+	float mag = magnitude(v);
+	return {v.x / mag, v.y / mag, v.z / mag};
+}
+
+Vector3 Normalize(const Vector3& v) { return {v / Length(v)}; }
+
 Matrix4x4 MakeTranslateMatrix(const Vector3& translate) { return {1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, translate.x, translate.y, translate.z, 1}; }
 
 Matrix4x4 MakeScaleMatrix(const Vector3& scale) { return {scale.x, 0, 0, 0, 0, scale.y, 0, 0, 0, 0, scale.z, 0, 0, 0, 0, 1}; }

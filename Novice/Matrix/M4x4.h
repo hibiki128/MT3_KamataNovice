@@ -8,6 +8,23 @@
 static const int kColumnWidth = 60;
 static const int kRowHeight = 20;
 
+// ベクトルの大きさの2乗を計算する関数
+float magnitudeSquared(const Vector3& v);
+
+// ベクトルの大きさを計算する関数
+float magnitude(const Vector3& v);
+
+// ベクトルの正規化を行う関数
+Vector3 normalize(const Vector3& v);
+
+float Dot(const Vector3& v1, const Vector3& v2);
+
+float Length(const Vector3& v);
+
+Vector3 Cross(const Vector3& v1, const Vector3& v2);
+
+Vector3 Normalize(const Vector3& v);
+
 // 平行移動行列
 Matrix4x4 MakeTranslateMatrix(const Vector3& translate);
 
