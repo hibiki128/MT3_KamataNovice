@@ -8,24 +8,6 @@
 static const int kColumnWidth = 60;
 static const int kRowHeight = 20;
 
-// 加算
-Vector3 Add(const Vector3& v1, const Vector3& v2);
-
-// 減算
-Vector3 Subtract(const Vector3& v1, const Vector3& v2);
-
-// スカラー倍
-Vector3 Multiply(float scalar, const Vector3& v);
-
-// 内積
-float Dot(const Vector3& v1, const Vector3& v2);
-
-// 長さ（ノルム）
-float Length(const Vector3& v);
-
-// 正規化
-Vector3 Normalize(const Vector3& v);
-
 // 平行移動行列
 Matrix4x4 MakeTranslateMatrix(const Vector3& translate);
 
@@ -75,9 +57,6 @@ Matrix4x4 MakeOrthographicMatrix(float left, float top, float right, float botto
 
 // ビューポート変換行列
 Matrix4x4 MakeViewPortMatrix(float left, float top, float width, float height, float minDepth, float maxDepth);
-
-// クロス積
-Vector3 Cross(const Vector3& v1, const Vector3& v2);
 
 // デバッグ用
 void VectorScreenPrintf(int x, int y, const Vector3& vector, const char* label);
