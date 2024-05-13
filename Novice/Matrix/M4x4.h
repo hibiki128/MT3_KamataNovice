@@ -5,6 +5,7 @@
 #include "assert.h"
 #include "cmath"
 
+
 static const int kColumnWidth = 60;
 static const int kRowHeight = 20;
 
