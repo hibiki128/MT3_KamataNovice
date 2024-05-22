@@ -1,9 +1,10 @@
 #pragma once
-#include"Vector3.h"
-#include"Matrix/M4x4.h"
-#include <Novice.h>
+#include "Matrix/M4x4.h"
+#include "Vector2.h"
+#include "Vector3.h"
 #include "cmath"
-#include"numbers"
+#include "numbers"
+#include <Novice.h>
 
 struct Line {
 	Vector3 origin; //!< 始点
@@ -25,10 +26,21 @@ struct Sphere {
 	float radius;   // !< 半径
 };
 
+struct Plane {
+	Vector3 normal; //!< 法線
+	float distance; //!< 距離
+};
+
 void DrawGrid(const Matrix4x4& viewProjectionMatrix, const Matrix4x4& viewportMatrix);
 
 void DrawSphere(const Sphere& sphere, const Matrix4x4& viewProjectionMatrix, const Matrix4x4& viewportMarix, uint32_t color);
 
+void DrawPlane(const Plane& plane, const Matrix4x4& viewProjectionMatrix, const Matrix4x4& viewportMatrix, uint32_t color);
+
 Vector3 Project(const Vector3& v1, const Vector3& v2);
-// 線分と点の最近接点を計算する関数
+
 Vector3 ClosestPoint(const Vector3& point, const Segment& segment);
+
+Vector3 Perpendicular(const Vector3& vector);
+
+void CameraMove(Vector3& cameraRotate, Vector3& cameraTranslate, Vector2Int& clickPosition, char* keys, char* preKeys);

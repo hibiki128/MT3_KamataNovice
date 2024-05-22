@@ -1,4 +1,5 @@
-#include"Debug.h"
+#include "Debug.h"
+#include "imgui.h"
 
 void DrawGrid(const Matrix4x4& viewProjectionMatrix, const Matrix4x4& viewportMatrix) {
 	const float kGridHalfWidth = 2.0f;                                      // グリッドの半分の幅
@@ -27,11 +28,11 @@ void DrawGrid(const Matrix4x4& viewProjectionMatrix, const Matrix4x4& viewportMa
 		}
 	}
 
-	// 左右の線を引くためにyIndexのループも同様に処理
-	for (uint32_t yIndex = 0; yIndex <= kSubdivision; ++yIndex) {
+	// 左右の線を引くためにzIndexのループも同様に処理
+	for (uint32_t zIndex = 0; zIndex <= kSubdivision; ++zIndex) {
 		// ワールド座標系上の始点と終点を求める
-		Vector3 worldStartPos = {-kGridHalfWidth, 0.0f, -kGridHalfWidth + yIndex * kGridEvery};
-		Vector3 worldEndPos = {kGridHalfWidth, 0.0f, -kGridHalfWidth + yIndex * kGridEvery};
+		Vector3 worldStartPos = {-kGridHalfWidth, 0.0f, -kGridHalfWidth + zIndex * kGridEvery};
+		Vector3 worldEndPos = {kGridHalfWidth, 0.0f, -kGridHalfWidth + zIndex * kGridEvery};
 
 		// ビュープロジェクションマトリックスを使ってクリップ座標系に変換
 		Vector3 clipStartPos = Transform(worldStartPos, viewProjectionMatrix);
@@ -42,7 +43,7 @@ void DrawGrid(const Matrix4x4& viewProjectionMatrix, const Matrix4x4& viewportMa
 		Vector3 screenEndPos = Transform(clipEndPos, viewportMatrix);
 
 		// 真ん中の線を黒で描画
-		if (yIndex == kSubdivision / 2 && kSubdivision % 2 == 0) {
+		if (zIndex == kSubdivision / 2 && kSubdivision % 2 == 0) {
 			Novice::DrawLine(int(screenStartPos.x), int(screenStartPos.y), int(screenEndPos.x), int(screenEndPos.y), 0x000000FF); // 黒色で描画
 		} else {
 			Novice::DrawLine(int(screenStartPos.x), int(screenStartPos.y), int(screenEndPos.x), int(screenEndPos.y), 0xAAAAAAFF); // グレーで描画
@@ -64,24 +65,24 @@ void DrawSphere(const Sphere& sphere, const Matrix4x4& viewProjectionMatrix, con
 			float lon = lonIndex * kLonEvery; // 現在の経度
 
 			// 現在の点を求める
-			float x1 = sphere.center.x + sphere.radius * std::cosf(lat) * std::cosf(lon);
-			float y1 = sphere.center.y + sphere.radius * std::sinf(lat);
-			float z1 = sphere.center.z + sphere.radius * std::cosf(lat) * std::sinf(lon);
+			Vector3 start = {
+			    sphere.center.x + sphere.radius * std::cosf(lat) * std::cosf(lon), 
+				sphere.center.y + sphere.radius * std::sinf(lat), 
+				sphere.center.z + sphere.radius * std::cosf(lat) * std::sinf(lon)};
 
 			// 次の点を求める（経度方向）
-			float x2 = sphere.center.x + sphere.radius * std::cosf(lat) * std::cosf(lon + kLonEvery);
-			float y2 = sphere.center.y + sphere.radius * std::sinf(lat);
-			float z2 = sphere.center.z + sphere.radius * std::cosf(lat) * std::sinf(lon + kLonEvery);
+			Vector3 end1 = {
+			    sphere.center.x + sphere.radius * std::cosf(lat) * std::cosf(lon + kLonEvery),
+			    sphere.center.y + sphere.radius * std::sinf(lat),
+			    sphere.center.z + sphere.radius * std::cosf(lat) * std::sinf(lon + kLonEvery),
+			};
 
 			// 次の点を求める（緯度方向）
-			float x3 = sphere.center.x + sphere.radius * std::cosf(lat + kLatEvery) * std::cosf(lon);
-			float y3 = sphere.center.y + sphere.radius * std::sinf(lat + kLatEvery);
-			float z3 = sphere.center.z + sphere.radius * std::cosf(lat + kLatEvery) * std::sinf(lon);
-
-			// 3D座標をVector3にセット
-			Vector3 start(x1, y1, z1);
-			Vector3 end1(x2, y2, z2);
-			Vector3 end2(x3, y3, z3);
+			Vector3 end2 = {
+			    sphere.center.x + sphere.radius * std::cosf(lat + kLatEvery) * std::cosf(lon),
+			    sphere.center.y + sphere.radius * std::sinf(lat + kLatEvery),
+			    sphere.center.z + sphere.radius * std::cosf(lat + kLatEvery) * std::sinf(lon),
+			};
 
 			// 座標変換を行う
 			start = Transform(start, viewProjectionMatrix);
@@ -98,10 +99,31 @@ void DrawSphere(const Sphere& sphere, const Matrix4x4& viewProjectionMatrix, con
 	}
 }
 
+void DrawPlane(const Plane& plane, const Matrix4x4& viewProjectionMatrix, const Matrix4x4& viewportMatrix, uint32_t color) {
+	Vector3 center = plane.distance * plane.normal; // 1
+	Vector3 perpendiculars[4];
+	perpendiculars[0] = Normalize(Perpendicular(plane.normal));                             // 2
+	perpendiculars[1] = {-perpendiculars[0].x, -perpendiculars[0].y, -perpendiculars[0].z}; // 3
+	perpendiculars[2] = Cross(plane.normal, perpendiculars[0]);                             // 4
+	perpendiculars[3] = {-perpendiculars[2].x, -perpendiculars[2].y, -perpendiculars[2].z}; // 5
+
+	// 6
+	Vector3 points[4];
+	for (int32_t index = 0; index < 4; ++index) {
+		Vector3 extend = 2.0f * perpendiculars[index];
+		Vector3 point = center + extend;
+		points[index] = Transform(Transform(point, viewProjectionMatrix), viewportMatrix);
+	}
+	Novice::DrawLine(static_cast<int>(points[0].x), static_cast<int>(points[0].y), static_cast<int>(points[2].x), static_cast<int>(points[2].y), color);
+	Novice::DrawLine(static_cast<int>(points[2].x), static_cast<int>(points[2].y), static_cast<int>(points[1].x), static_cast<int>(points[1].y), color);
+	Novice::DrawLine(static_cast<int>(points[1].x), static_cast<int>(points[1].y), static_cast<int>(points[3].x), static_cast<int>(points[3].y), color);
+	Novice::DrawLine(static_cast<int>(points[3].x), static_cast<int>(points[3].y), static_cast<int>(points[0].x), static_cast<int>(points[0].y), color);
+}
+
 Vector3 Project(const Vector3& v1, const Vector3& v2) {
 	float dot = Dot(v1, v2);
-	float magSquared = magnitudeSquared(v2);
-	float scalar = dot / magSquared;
+	float lenSquared = LengthSquared(v2);
+	float scalar = dot / lenSquared;
 	return {v2.x * scalar, v2.y * scalar, v2.z * scalar};
 }
 
@@ -109,7 +131,104 @@ Vector3 Project(const Vector3& v1, const Vector3& v2) {
 Vector3 ClosestPoint(const Vector3& point, const Segment& segment) {
 	Vector3 pointOnLine = segment.origin; // 直線上の任意の点はセグメントの始点と同じと仮定
 	float dot = Dot(segment.diff, point - pointOnLine);
-	float magSquared = magnitudeSquared(segment.diff);
-	float t = dot / magSquared;
+	float lenSquared = LengthSquared(segment.diff);
+	float t = dot / lenSquared;
 	return {pointOnLine.x + segment.diff.x * t, pointOnLine.y + segment.diff.y * t, pointOnLine.z + segment.diff.z * t};
+}
+
+Vector3 Perpendicular(const Vector3& vector) {
+	if (vector.x != 0.0f || vector.y != 0.0f) {
+		return {-vector.y, vector.x, 0.0f};
+	}
+	return {0.0f, -vector.z, vector.y};
+}
+
+void CameraMove(Vector3& cameraRotate, Vector3& cameraTranslate, Vector2Int& clickPosition, char* keys, char* preKeys) {
+	// カーソルを動かすときの感度
+	const float mouseSensitivity = 0.003f;
+	// カメラの移動速度
+	const float moveSpeed = 0.005f;
+
+	// 各フラグ
+	static bool isLeftClicked = false;
+	static bool isWheelClicked = false;
+	static bool isDebugCamera = false;
+
+	// 回転を考慮する
+	Matrix4x4 rotationMatrix = MakeRotateXYZMatrix(cameraRotate);
+	Vector3 X = {1.0f, 0.0f, 0.0f};
+	Vector3 Y = {0.0f, 1.0f, 0.0f};
+	Vector3 Z = {0.0f, 0.0f, -1.0f};
+
+	Vector3 rotatedX = Transform(X, rotationMatrix);
+	Vector3 rotatedY = Transform(Y, rotationMatrix);
+	Vector3 rotatedZ = Transform(Z, rotationMatrix);
+
+	if (keys[DIK_SPACE] && preKeys[DIK_SPACE] == 0) {
+		isDebugCamera = !isDebugCamera;
+	}
+
+	if (isDebugCamera) {
+
+		/// ========カメラ操作========
+		// カメラの回転を更新する
+		if (Novice::IsPressMouse(0) == 1) {
+			if (!isLeftClicked) {
+				// マウスがクリックされたときに現在のマウス位置を保存する
+				Novice::GetMousePosition(&clickPosition.x, &clickPosition.y);
+				isLeftClicked = true;
+			} else {
+				// マウスがクリックされている間はカメラの回転を更新する
+				Vector2Int currentMousePos;
+				Novice::GetMousePosition(&currentMousePos.x, &currentMousePos.y);
+
+				float deltaX = static_cast<float>(currentMousePos.x - clickPosition.x);
+				float deltaY = static_cast<float>(currentMousePos.y - clickPosition.y);
+
+				cameraRotate.x += deltaY * mouseSensitivity;
+				cameraRotate.y += deltaX * mouseSensitivity;
+
+				// 現在のマウス位置を保存する
+				clickPosition = currentMousePos;
+			}
+		} else {
+			// マウスがクリックされていない場合はフラグをリセットする
+			isLeftClicked = false;
+		}
+
+		// カメラの位置を更新する
+		if (Novice::IsPressMouse(2) == 1) {
+			if (!isWheelClicked) {
+				// マウスがクリックされたときに現在のマウス位置を保存する
+				Novice::GetMousePosition(&clickPosition.x, &clickPosition.y);
+				isWheelClicked = true;
+			} else {
+				// マウスがクリックされている間はカメラの位置を更新する
+				Vector2Int currentMousePos;
+				Novice::GetMousePosition(&currentMousePos.x, &currentMousePos.y);
+
+				float deltaX = static_cast<float>(currentMousePos.x - clickPosition.x);
+				float deltaY = static_cast<float>(currentMousePos.y - clickPosition.y);
+
+				cameraTranslate -= rotatedX * deltaX * mouseSensitivity;
+				cameraTranslate += rotatedY * deltaY * mouseSensitivity;
+
+				// 現在のマウス位置を保存する
+				clickPosition = currentMousePos;
+			}
+		} else {
+			// マウスがクリックされていない場合はフラグをリセットする
+			isWheelClicked = false;
+		}
+
+		// マウスホイールの移動量を取得する
+		int wheelDelta = -Novice::GetWheel();
+
+		// マウスホイールの移動量に応じてカメラの移動を更新する
+		cameraTranslate += rotatedZ * float(wheelDelta) * moveSpeed;
+		/// =====================
+	}
+	ImGui::Begin("camera explanation");
+	ImGui::Text("DebugCamera = %d (0 = false , 1 = true)\nPressingMouseLeftbutton : moveCameraRotate\nPressingMouseWheelbutton : moveCameraTranslate", isDebugCamera);
+	ImGui::End();
 }

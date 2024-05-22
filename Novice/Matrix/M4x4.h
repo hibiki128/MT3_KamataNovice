@@ -9,16 +9,9 @@
 static const int kColumnWidth = 60;
 static const int kRowHeight = 20;
 
-// ベクトルの大きさの2乗を計算する関数
-float magnitudeSquared(const Vector3& v);
-
-// ベクトルの大きさを計算する関数
-float magnitude(const Vector3& v);
-
-// ベクトルの正規化を行う関数
-Vector3 normalize(const Vector3& v);
-
 float Dot(const Vector3& v1, const Vector3& v2);
+
+float LengthSquared(const Vector3& v);
 
 float Length(const Vector3& v);
 

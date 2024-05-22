@@ -20,4 +20,12 @@ Vector3& Vector3::operator+=(const Vector3& other) {
 	return *this;
 }
 
+// -=
+Vector3& Vector3::operator-=(const Vector3& other) {
+	x -= other.x;
+	y -= other.y;
+	z -= other.z;
+	return *this;
+}
+
 Vector3 Vector3::operator/(const Vector3& obj) const { return Vector3(x / obj.x, y / obj.y, z / obj.z); }
