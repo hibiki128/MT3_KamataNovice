@@ -254,3 +254,22 @@ bool IsCollision(const Sphere& sphere, const Plane& plane) {
 		return false; // 衝突していない
 	}
 }
+
+bool isCollision(Segment& line, Plane& plane) {
+	float dot = Dot(plane.normal, line.diff);
+
+	if (dot == 0.0f) {
+		return false;
+	}
+
+	// tを求める
+	float t = (plane.distance - Dot(line.origin, plane.normal)) / dot;
+	// tが線分の範囲内にあるかをチェックする
+	if (t >= 0.0f && t <= 1.0f) {
+		// 交差点が線分上にある
+		return true;
+	} else {
+		// 交差点が線分の範囲外にある
+		return false;
+	}
+}

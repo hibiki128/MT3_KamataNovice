@@ -8,28 +8,11 @@
 
 const char kWindowTitle[] = "LE2B_20_ハギワラ_ヒビキ";
 
-bool isCollision(Segment line, Plane plane) {
-	float dot = Dot(plane.normal, line.diff);
-
-	if (dot == 0.0f) {
-		return false;
-	}
-
-	// tを求める
-	float t = (plane.distance - Dot(line.origin, plane.normal)) / dot;
-	if (t == -1) {
-		return;
-	} else if (t == 2) {
-		return;
-	};
-}
-
 // Windowsアプリでのエントリーポイント(main関数)
 int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 
 	// ライブラリの初期化
 	Novice::Initialize(kWindowTitle, 1280, 720);
-
 	Vector3 cameraTranslate{0.0f, 1.9f, -6.49f};
 	Vector3 cameraRotate{0.26f, 0.0f, 0.0f};
 	Vector3 cameraPosition{0.0f, 1.0f, -5.0f};
@@ -37,7 +20,8 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 	plane.normal = {0.0f, 1.0f, 0.0f};
 	plane.distance = 1.0f;
 	Segment line;
-	line.origin = {-0.45f, 0.75f, 0.00f};
+	line.origin = {-0.45f, 0.75f, 0.0f};
+	line.diff = {1.0f, 0.5f, 0.0f};
 
 	uint32_t color = WHITE;
 	bool isHit = false;
@@ -66,10 +50,15 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 		Matrix4x4 cameraMatrix = MakeAffineMatrix({1.0f, 1.0f, 1.0f}, cameraRotate, cameraPosition + cameraTranslate);
 		Matrix4x4 viewMatrix = Inverse(cameraMatrix);
 		Matrix4x4 projectionMatrix = MakePerspectiveFovMatrix(0.45f, float(kWindowWidth) / float(kWindowHeight), 0.1f, 100.0f);
-		Matrix4x4 ViewProjectionMatrix = Multiply(viewMatrix, projectionMatrix);
+		Matrix4x4 viewProjectionMatrix = Multiply(viewMatrix, projectionMatrix);
 		Matrix4x4 viewportMatrix = MakeViewPortMatrix(0, 0, float(kWindowWidth), float(kWindowHeight), 0.0f, 1.0f);
 
 		CameraMove(cameraRotate, cameraTranslate, ClickPosition, keys, preKeys);
+
+		Vector3 start = Transform(Transform(line.origin, viewProjectionMatrix), viewportMatrix);
+		Vector3 end = Transform(Transform(line.origin + line.diff, viewProjectionMatrix), viewportMatrix);
+
+		isHit = isCollision(line, plane);
 
 		///
 		/// ↑更新処理ここまで
@@ -83,14 +72,17 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 		ImGui::DragFloat3("Plane.Normal", &plane.normal.x, 0.01f);
 		plane.normal = Normalize(plane.normal);
 		ImGui::DragFloat("Plane.Distance", &plane.distance, 0.01f);
+		ImGui::DragFloat3("Segment.Origin", &line.origin.x, 0.01f);
+		ImGui::DragFloat3("Segment.Diff", &line.diff.x, 0.01f);
 		ImGui::End();
 		if (isHit == true) {
 			color = RED;
 		} else {
 			color = WHITE;
 		}
-		DrawGrid(ViewProjectionMatrix, viewportMatrix);
-		DrawPlane(plane, ViewProjectionMatrix, viewportMatrix, WHITE);
+		DrawGrid(viewProjectionMatrix, viewportMatrix);
+		DrawPlane(plane, viewProjectionMatrix, viewportMatrix, WHITE);
+		Novice::DrawLine(int(start.x), int(start.y), int(end.x), int(end.y), color);
 
 		///
 		/// ↑描画処理ここまで

@@ -31,18 +31,23 @@ struct Plane {
 	float distance; //!< 距離
 };
 
+// グリッド描画
 void DrawGrid(const Matrix4x4& viewProjectionMatrix, const Matrix4x4& viewportMatrix);
 
+// 球描画
 void DrawSphere(const Sphere& sphere, const Matrix4x4& viewProjectionMatrix, const Matrix4x4& viewportMarix, uint32_t color);
 
+// 平面描画
 void DrawPlane(const Plane& plane, const Matrix4x4& viewProjectionMatrix, const Matrix4x4& viewportMatrix, uint32_t color);
 
 Vector3 Project(const Vector3& v1, const Vector3& v2);
 
+// 最近接点
 Vector3 ClosestPoint(const Vector3& point, const Segment& segment);
 
 Vector3 Perpendicular(const Vector3& vector);
 
+// カメラ移動
 void CameraMove(Vector3& cameraRotate, Vector3& cameraTranslate, Vector2Int& clickPosition, char* keys, char* preKeys);
 
 // 球同士の衝突判定
@@ -50,3 +55,6 @@ bool IsCollision(const Sphere& s1, const Sphere& s2);
 
 // 球と平面の衝突判定
 bool IsCollision(const Sphere& sphere, const Plane& plane);
+
+// 線分と平面の衝突判定
+bool isCollision(Segment& line, Plane& plane);
