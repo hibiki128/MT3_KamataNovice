@@ -8,10 +8,20 @@
 
 const char kWindowTitle[] = "LE2B_20_ハギワラ_ヒビキ";
 
-bool isCollision(Segment segment, Plane plene) { 
-	float dot = Dot(plene.normal,segment.diff);
+bool isCollision(Segment line, Plane plane) {
+	float dot = Dot(plane.normal, line.diff);
 
-	if (dot)
+	if (dot == 0.0f) {
+		return false;
+	}
+
+	// tを求める
+	float t = (plane.distance - Dot(line.origin, plane.normal)) / dot;
+	if (t == -1) {
+		return;
+	} else if (t == 2) {
+		return;
+	};
 }
 
 // Windowsアプリでのエントリーポイント(main関数)
@@ -26,6 +36,9 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 	Plane plane;
 	plane.normal = {0.0f, 1.0f, 0.0f};
 	plane.distance = 1.0f;
+	Segment line;
+	line.origin = {-0.45f, 0.75f, 0.00f};
+
 	uint32_t color = WHITE;
 	bool isHit = false;
 	Vector2Int ClickPosition = {};
@@ -56,7 +69,7 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 		Matrix4x4 ViewProjectionMatrix = Multiply(viewMatrix, projectionMatrix);
 		Matrix4x4 viewportMatrix = MakeViewPortMatrix(0, 0, float(kWindowWidth), float(kWindowHeight), 0.0f, 1.0f);
 
-		CameraMove(cameraRotate, cameraTranslate, ClickPosition,keys,preKeys);
+		CameraMove(cameraRotate, cameraTranslate, ClickPosition, keys, preKeys);
 
 		///
 		/// ↑更新処理ここまで
@@ -67,13 +80,10 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 		///
 
 		ImGui::Begin("Window");
-		ImGui::DragFloat3("Sphere.Center", &sphere.center.x, 0.01f);
-		ImGui::DragFloat("Sphere.Radius", &sphere.radius, 0.01f);
 		ImGui::DragFloat3("Plane.Normal", &plane.normal.x, 0.01f);
 		plane.normal = Normalize(plane.normal);
 		ImGui::DragFloat("Plane.Distance", &plane.distance, 0.01f);
 		ImGui::End();
-		isHit = IsCollision(sphere, plane);
 		if (isHit == true) {
 			color = RED;
 		} else {
