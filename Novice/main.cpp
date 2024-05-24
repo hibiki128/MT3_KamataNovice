@@ -8,28 +8,10 @@
 
 const char kWindowTitle[] = "LE2B_20_ハギワラ_ヒビキ";
 
-bool IsCollision(const Sphere& s1, const Sphere& s2) {
-	float distance = Length(s2.center - s1.center);
+bool isCollision(Segment segment, Plane plene) { 
+	float dot = Dot(plene.normal,segment.diff);
 
-	if (distance <= s1.radius + s2.radius) {
-		// 当たったとき
-		return true;
-	} else {
-		// 当たっていないとき
-		return false;
-	}
-};
-
-bool IsCollision(const Sphere& sphere, const Plane& plane) {
-	// 平面の法線方向に対する距離を計算する
-	float distance = plane.normal.x * sphere.center.x + plane.normal.y * sphere.center.y + plane.normal.z * sphere.center.z - plane.distance;
-
-	// 球の半径と比較して判定する
-	if (std::abs(distance) <= sphere.radius) {
-		return true; // 衝突している
-	} else {
-		return false; // 衝突していない
-	}
+	if (dot)
 }
 
 // Windowsアプリでのエントリーポイント(main関数)
@@ -41,9 +23,6 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 	Vector3 cameraTranslate{0.0f, 1.9f, -6.49f};
 	Vector3 cameraRotate{0.26f, 0.0f, 0.0f};
 	Vector3 cameraPosition{0.0f, 1.0f, -5.0f};
-	Sphere sphere;
-	sphere.center = {0.0f, 0.0f, 0.0f};
-	sphere.radius = 1.0f;
 	Plane plane;
 	plane.normal = {0.0f, 1.0f, 0.0f};
 	plane.distance = 1.0f;
@@ -101,7 +80,6 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 			color = WHITE;
 		}
 		DrawGrid(ViewProjectionMatrix, viewportMatrix);
-		DrawSphere(sphere, ViewProjectionMatrix, viewportMatrix, color);
 		DrawPlane(plane, ViewProjectionMatrix, viewportMatrix, WHITE);
 
 		///

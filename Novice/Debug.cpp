@@ -66,9 +66,7 @@ void DrawSphere(const Sphere& sphere, const Matrix4x4& viewProjectionMatrix, con
 
 			// 現在の点を求める
 			Vector3 start = {
-			    sphere.center.x + sphere.radius * std::cosf(lat) * std::cosf(lon), 
-				sphere.center.y + sphere.radius * std::sinf(lat), 
-				sphere.center.z + sphere.radius * std::cosf(lat) * std::sinf(lon)};
+			    sphere.center.x + sphere.radius * std::cosf(lat) * std::cosf(lon), sphere.center.y + sphere.radius * std::sinf(lat), sphere.center.z + sphere.radius * std::cosf(lat) * std::sinf(lon)};
 
 			// 次の点を求める（経度方向）
 			Vector3 end1 = {
@@ -229,6 +227,30 @@ void CameraMove(Vector3& cameraRotate, Vector3& cameraTranslate, Vector2Int& cli
 		/// =====================
 	}
 	ImGui::Begin("camera explanation");
-	ImGui::Text("DebugCamera = %d (0 = false , 1 = true)\nPressingMouseLeftbutton : moveCameraRotate\nPressingMouseWheelbutton : moveCameraTranslate", isDebugCamera);
+	ImGui::Text("SPACE : DebugCamera on:off\nDebugCamera = %d (0 = false , 1 = true)\nPressingMouseLeftbutton : moveCameraRotate\nPressingMouseWheelbutton : moveCameraTranslate", isDebugCamera);
 	ImGui::End();
+}
+
+bool IsCollision(const Sphere& s1, const Sphere& s2) {
+	float distance = Length(s2.center - s1.center);
+
+	if (distance <= s1.radius + s2.radius) {
+		// 当たったとき
+		return true;
+	} else {
+		// 当たっていないとき
+		return false;
+	}
+};
+
+bool IsCollision(const Sphere& sphere, const Plane& plane) {
+	// 平面の法線方向に対する距離を計算する
+	float distance = Dot(plane.normal,sphere.center) - plane.distance;
+
+	// 球の半径と比較して判定する
+	if (std::abs(distance) <= sphere.radius) {
+		return true; // 衝突している
+	} else {
+		return false; // 衝突していない
+	}
 }

@@ -44,3 +44,9 @@ Vector3 ClosestPoint(const Vector3& point, const Segment& segment);
 Vector3 Perpendicular(const Vector3& vector);
 
 void CameraMove(Vector3& cameraRotate, Vector3& cameraTranslate, Vector2Int& clickPosition, char* keys, char* preKeys);
+
+// 球同士の衝突判定
+bool IsCollision(const Sphere& s1, const Sphere& s2);
+
+// 球と平面の衝突判定
+bool IsCollision(const Sphere& sphere, const Plane& plane);
