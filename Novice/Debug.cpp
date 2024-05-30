@@ -118,6 +118,18 @@ void DrawPlane(const Plane& plane, const Matrix4x4& viewProjectionMatrix, const 
 	Novice::DrawLine(static_cast<int>(points[3].x), static_cast<int>(points[3].y), static_cast<int>(points[0].x), static_cast<int>(points[0].y), color);
 }
 
+void DrawTriangle(const Triangle& triangle, const Matrix4x4& viewProjectionMatrix, const Matrix4x4& viewportMatrix, uint32_t color) {
+	Vector3 vertices[3];
+	for (int i = 0; i < 3; ++i) {
+		vertices[i] = Transform(triangle.vertices[i], viewProjectionMatrix);
+		vertices[i] = Transform(vertices[i], viewportMatrix);
+	}
+
+	Novice::DrawTriangle(
+	    static_cast<int>(vertices[0].x), static_cast<int>(vertices[0].y), static_cast<int>(vertices[1].x), static_cast<int>(vertices[1].y),
+	    static_cast<int>(vertices[2].x), static_cast<int>(vertices[2].y), color, kFillModeWireFrame);
+}
+
 Vector3 Project(const Vector3& v1, const Vector3& v2) {
 	float dot = Dot(v1, v2);
 	float lenSquared = LengthSquared(v2);
@@ -245,7 +257,7 @@ bool IsCollision(const Sphere& s1, const Sphere& s2) {
 
 bool IsCollision(const Sphere& sphere, const Plane& plane) {
 	// 平面の法線方向に対する距離を計算する
-	float distance = Dot(plane.normal,sphere.center) - plane.distance;
+	float distance = Dot(plane.normal, sphere.center) - plane.distance;
 
 	// 球の半径と比較して判定する
 	if (std::abs(distance) <= sphere.radius) {
@@ -255,7 +267,7 @@ bool IsCollision(const Sphere& sphere, const Plane& plane) {
 	}
 }
 
-bool isCollision(Segment& line, Plane& plane) {
+bool IsCollision(Segment& line, Plane& plane) {
 	float dot = Dot(plane.normal, line.diff);
 
 	if (dot == 0.0f) {

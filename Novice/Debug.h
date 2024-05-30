@@ -31,6 +31,10 @@ struct Plane {
 	float distance; //!< 距離
 };
 
+struct Triangle {
+	Vector3 vertices[3]; //!< 頂点
+};
+
 // グリッド描画
 void DrawGrid(const Matrix4x4& viewProjectionMatrix, const Matrix4x4& viewportMatrix);
 
@@ -39,6 +43,9 @@ void DrawSphere(const Sphere& sphere, const Matrix4x4& viewProjectionMatrix, con
 
 // 平面描画
 void DrawPlane(const Plane& plane, const Matrix4x4& viewProjectionMatrix, const Matrix4x4& viewportMatrix, uint32_t color);
+
+// 三角形描画
+void DrawTriangle(const Triangle& triangle, const Matrix4x4& viewProjectionMatrix, const Matrix4x4& viewportMatrix, uint32_t color);
 
 Vector3 Project(const Vector3& v1, const Vector3& v2);
 
@@ -57,4 +64,4 @@ bool IsCollision(const Sphere& s1, const Sphere& s2);
 bool IsCollision(const Sphere& sphere, const Plane& plane);
 
 // 線分と平面の衝突判定
-bool isCollision(Segment& line, Plane& plane);
+bool IsCollision(Segment& line, Plane& plane);

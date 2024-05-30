@@ -8,6 +8,27 @@
 
 const char kWindowTitle[] = "LE2B_20_ハギワラ_ヒビキ";
 
+bool IsCollision(const Triangle& triangle, const Segment& segment) {
+	Vector3 edge01 = triangle.vertices[1] - triangle.vertices[0];
+	Vector3 edge12 = triangle.vertices[2] - triangle.vertices[1];
+	Vector3 edge20 = triangle.vertices[0] - triangle.vertices[2];
+
+	Vector3 normal = Cross(edge01, edge12);
+
+	Vector3 cross01 = Cross(edge01, segment.origin - triangle.vertices[0]);
+	Vector3 cross12 = Cross(edge12, segment.origin - triangle.vertices[1]);
+	Vector3 cross20 = Cross(edge20, segment.origin - triangle.vertices[2]);
+
+	// すべての小三角形のクロス積と法線が同じ方向を向いていたら衝突
+	if (Dot(cross01, normal) >= 0.0f && Dot(cross12, normal) >= 0.0f && Dot(cross20, normal) >= 0.0f) {
+		// 衝突
+		return true;
+	}
+
+	// 衝突しない
+	return false;
+}
+
 // Windowsアプリでのエントリーポイント(main関数)
 int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 
@@ -16,13 +37,13 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 	Vector3 cameraTranslate{0.0f, 1.9f, -6.49f};
 	Vector3 cameraRotate{0.26f, 0.0f, 0.0f};
 	Vector3 cameraPosition{0.0f, 1.0f, -5.0f};
-	Plane plane;
-	plane.normal = {0.0f, 1.0f, 0.0f};
-	plane.distance = 1.0f;
 	Segment line;
 	line.origin = {-0.45f, 0.75f, 0.0f};
 	line.diff = {1.0f, 0.5f, 0.0f};
-
+	Triangle triangle;
+	triangle.vertices[0] = {-1.0f, 0.0f, 0.0f};
+	triangle.vertices[1] = {0.0f, 1.0f, 0.0f};
+	triangle.vertices[2] = {1.0f, 0.0f, 0.0f};
 	uint32_t color = WHITE;
 	bool isHit = false;
 	Vector2Int ClickPosition = {};
@@ -58,7 +79,7 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 		Vector3 start = Transform(Transform(line.origin, viewProjectionMatrix), viewportMatrix);
 		Vector3 end = Transform(Transform(line.origin + line.diff, viewProjectionMatrix), viewportMatrix);
 
-		isHit = isCollision(line, plane);
+		isHit = IsCollision(triangle, line);
 
 		///
 		/// ↑更新処理ここまで
@@ -69,9 +90,9 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 		///
 
 		ImGui::Begin("Window");
-		ImGui::DragFloat3("Plane.Normal", &plane.normal.x, 0.01f);
-		plane.normal = Normalize(plane.normal);
-		ImGui::DragFloat("Plane.Distance", &plane.distance, 0.01f);
+		ImGui::DragFloat3("Triangle.v0", &triangle.vertices[0].x, 0.01f);
+		ImGui::DragFloat3("Triangle.v1", &triangle.vertices[1].x, 0.01f);
+		ImGui::DragFloat3("Triangle.v2", &triangle.vertices[2].x, 0.01f);
 		ImGui::DragFloat3("Segment.Origin", &line.origin.x, 0.01f);
 		ImGui::DragFloat3("Segment.Diff", &line.diff.x, 0.01f);
 		ImGui::End();
@@ -81,8 +102,8 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 			color = WHITE;
 		}
 		DrawGrid(viewProjectionMatrix, viewportMatrix);
-		DrawPlane(plane, viewProjectionMatrix, viewportMatrix, WHITE);
 		Novice::DrawLine(int(start.x), int(start.y), int(end.x), int(end.y), color);
+		DrawTriangle(triangle, viewProjectionMatrix, viewportMatrix, WHITE);
 
 		///
 		/// ↑描画処理ここまで
