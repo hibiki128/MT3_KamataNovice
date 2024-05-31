@@ -8,13 +8,23 @@
 
 const char kWindowTitle[] = "LE2B_20_ハギワラ_ヒビキ";
 
-bool IsCollision(const AABB& aabb1, const AABB& aabb2) {
-	if ((aabb1.min.x <= aabb2.max.x && aabb1.max.x >= aabb2.min.x) && (aabb1.min.y <= aabb2.max.y && aabb1.max.y >= aabb2.min.y) && (aabb1.min.z <= aabb2.max.z && aabb1.max.z >= aabb2.min.z)) {
+bool IsCollision(const AABB& aabb, const Sphere& sphere) {
+	// 最近接点を求める
+	Vector3 closestPoint{
+		std::clamp(sphere.center.x, aabb.min.x, aabb.max.x),
+		std::clamp(sphere.center.y, aabb.min.y, aabb.max.y),
+		std::clamp(sphere.center.z, aabb.min.z, aabb.max.z)};
+
+	// 最近接点と球の中心との距離を求める
+	float distance = Length(closestPoint - sphere.center);
+
+	// 距離が半径より小さければ衝突
+	if (distance <= sphere.radius) {
 		return true;
 	} else {
 		return false;
 	}
-};
+}
 
 // Windowsアプリでのエントリーポイント(main関数)
 int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
@@ -27,12 +37,12 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 	uint32_t color = WHITE;
 	bool isHit = false;
 	Vector2Int ClickPosition = {};
-	AABB aabb[2];
-	aabb[0].min = {-0.5f, -0.5f, -0.5f};
-	aabb[0].max = {0.0f, 0.0f, 0.0f};
-	aabb[1].min = {0.2f, 0.2f, 0.2f};
-	aabb[1].max = {1.0f, 1.0f, 1.0f};
-
+	Sphere sphere;
+	sphere.center = {1.0f, 1.0f, 1.0f};
+	sphere.radius = 1.0f;
+	AABB aabb;
+	aabb.min = {-0.5f, -0.5f, -0.5f};
+	aabb.max = {0.0f, 0.0f, 0.0f};
 	const int kWindowWidth = 1280;
 	const int kWindowHeight = 720;
 
@@ -61,7 +71,7 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 
 		CameraMove(cameraRotate, cameraTranslate, ClickPosition, keys, preKeys);
 
-		isHit = IsCollision(aabb[0], aabb[1]);
+		isHit = IsCollision(aabb, sphere);
 
 		///
 		/// ↑更新処理ここまで
@@ -72,21 +82,20 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 		///
 
 		ImGui::Begin("Window");
-		ImGui::DragFloat3("aabb1.min", &aabb[0].min.x, 0.01f);
-		ImGui::DragFloat3("aabb1.max", &aabb[0].max.x, 0.01f);
-		ImGui::DragFloat3("aabb2.min", &aabb[1].min.x, 0.01f);
-		ImGui::DragFloat3("aabb2.max", &aabb[1].max.x, 0.01f);
+		ImGui::DragFloat3("aabb.min", &aabb.min.x, 0.01f);
+		ImGui::DragFloat3("aabb.max", &aabb.max.x, 0.01f);
+		ImGui::DragFloat3("sphere.center", &sphere.center.x, 0.01f);
+		ImGui::DragFloat("sphere.radius", &sphere.radius, 0.01f);
 		ImGui::End();
 		if (isHit == true) {
 			color = RED;
 		} else {
 			color = WHITE;
 		}
-		SetAABB(aabb[0]);
-		SetAABB(aabb[1]);
+		SetAABB(aabb);
 		DrawGrid(viewProjectionMatrix, viewportMatrix);
-		DrawAABB(aabb[0], viewProjectionMatrix, viewportMatrix, color);
-		DrawAABB(aabb[1], viewProjectionMatrix, viewportMatrix, color);
+		DrawSphere(sphere, viewProjectionMatrix, viewportMatrix, WHITE);
+		DrawAABB(aabb, viewProjectionMatrix, viewportMatrix, color);
 
 		///
 		/// ↑描画処理ここまで
