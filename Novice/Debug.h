@@ -35,6 +35,11 @@ struct Triangle {
 	Vector3 vertices[3]; //!< 頂点
 };
 
+struct AABB {
+	Vector3 min; //!< 最小点
+	Vector3 max; //!< 最大点
+};
+
 // グリッド描画
 void DrawGrid(const Matrix4x4& viewProjectionMatrix, const Matrix4x4& viewportMatrix);
 
@@ -46,6 +51,14 @@ void DrawPlane(const Plane& plane, const Matrix4x4& viewProjectionMatrix, const 
 
 // 三角形描画
 void DrawTriangle(const Triangle& triangle, const Matrix4x4& viewProjectionMatrix, const Matrix4x4& viewportMatrix, uint32_t color);
+
+// 線の描画(XYの場合)
+void DrawLineXY(const Vector3& start, const Vector3& end, uint32_t color);
+
+// AABBの描画
+void DrawAABB(const AABB& aabb, const Matrix4x4& viewProjectionMatrix, const Matrix4x4& viewportMatrix, uint32_t color);
+
+void SetAABB(AABB& aabb);
 
 Vector3 Project(const Vector3& v1, const Vector3& v2);
 
@@ -65,3 +78,6 @@ bool IsCollision(const Sphere& sphere, const Plane& plane);
 
 // 線分と平面の衝突判定
 bool IsCollision(Segment& line, Plane& plane);
+
+// 三角形と線分の衝突判定
+bool IsCollision(const Triangle& triangle, const Segment& segment);

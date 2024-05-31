@@ -126,8 +126,46 @@ void DrawTriangle(const Triangle& triangle, const Matrix4x4& viewProjectionMatri
 	}
 
 	Novice::DrawTriangle(
-	    static_cast<int>(vertices[0].x), static_cast<int>(vertices[0].y), static_cast<int>(vertices[1].x), static_cast<int>(vertices[1].y),
-	    static_cast<int>(vertices[2].x), static_cast<int>(vertices[2].y), color, kFillModeWireFrame);
+	    static_cast<int>(vertices[0].x), static_cast<int>(vertices[0].y), static_cast<int>(vertices[1].x), static_cast<int>(vertices[1].y), static_cast<int>(vertices[2].x),
+	    static_cast<int>(vertices[2].y), color, kFillModeWireFrame);
+}
+
+void DrawLineXY(const Vector3& start, const Vector3& end, uint32_t color) {
+	Novice::DrawLine(static_cast<int>(start.x), static_cast<int>(start.y), static_cast<int>(end.x), static_cast<int>(end.y), color);
+}
+
+void DrawAABB(const AABB& aabb, const Matrix4x4& viewProjectionMatrix, const Matrix4x4& viewportMatrix, uint32_t color) {
+	Vector3 points[8];
+
+	points[0] = aabb.min;
+	points[1] = Vector3(aabb.min.x, aabb.max.y, aabb.min.z);
+	points[2] = Vector3(aabb.max.x, aabb.max.y, aabb.min.z);
+	points[3] = Vector3(aabb.max.x, aabb.min.y, aabb.min.z);
+
+	points[4] = Vector3(aabb.min.x, aabb.min.y, aabb.max.z);
+	points[5] = Vector3(aabb.min.x, aabb.max.y, aabb.max.z);
+	points[6] = aabb.max;
+	points[7] = Vector3(aabb.max.x, aabb.min.y, aabb.max.z);
+
+	for (int i = 0; i < 8; ++i) {
+		points[i] = Transform(points[i], viewProjectionMatrix);
+		points[i] = Transform(points[i], viewportMatrix);
+	}
+
+	DrawLineXY(points[0], points[1], color);
+	DrawLineXY(points[1], points[2], color);
+	DrawLineXY(points[2], points[3], color);
+	DrawLineXY(points[3], points[0], color);
+
+	DrawLineXY(points[4], points[5], color);
+	DrawLineXY(points[5], points[6], color);
+	DrawLineXY(points[6], points[7], color);
+	DrawLineXY(points[7], points[4], color);
+
+	DrawLineXY(points[0], points[4], color);
+	DrawLineXY(points[1], points[5], color);
+	DrawLineXY(points[2], points[6], color);
+	DrawLineXY(points[3], points[7], color);
 }
 
 Vector3 Project(const Vector3& v1, const Vector3& v2) {
@@ -135,6 +173,15 @@ Vector3 Project(const Vector3& v1, const Vector3& v2) {
 	float lenSquared = LengthSquared(v2);
 	float scalar = dot / lenSquared;
 	return {v2.x * scalar, v2.y * scalar, v2.z * scalar};
+}
+
+void SetAABB(AABB& aabb) {
+	aabb.min.x = (std::min)(aabb.min.x, aabb.max.x);
+	aabb.max.x = (std::max)(aabb.min.x, aabb.max.x);
+	aabb.min.y = (std::min)(aabb.min.y, aabb.max.y);
+	aabb.max.y = (std::max)(aabb.min.y, aabb.max.y);
+	aabb.min.z = (std::min)(aabb.min.z, aabb.max.z);
+	aabb.max.z = (std::max)(aabb.min.z, aabb.max.z);
 }
 
 // 線分と点の最近接点を計算する関数
@@ -284,4 +331,25 @@ bool IsCollision(Segment& line, Plane& plane) {
 		// 交差点が線分の範囲外にある
 		return false;
 	}
+}
+
+bool IsCollision(const Triangle& triangle, const Segment& segment) {
+	Vector3 edge01 = triangle.vertices[1] - triangle.vertices[0];
+	Vector3 edge12 = triangle.vertices[2] - triangle.vertices[1];
+	Vector3 edge20 = triangle.vertices[0] - triangle.vertices[2];
+
+	Vector3 normal = Cross(edge01, edge12);
+
+	Vector3 cross01 = Cross(edge01, segment.origin - triangle.vertices[0]);
+	Vector3 cross12 = Cross(edge12, segment.origin - triangle.vertices[1]);
+	Vector3 cross20 = Cross(edge20, segment.origin - triangle.vertices[2]);
+
+	// すべての小三角形のクロス積と法線が同じ方向を向いていたら衝突
+	if (Dot(cross01, normal) >= 0.0f && Dot(cross12, normal) >= 0.0f && Dot(cross20, normal) >= 0.0f) {
+		// 衝突
+		return true;
+	}
+
+	// 衝突しない
+	return false;
 }
