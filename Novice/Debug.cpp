@@ -1,9 +1,9 @@
 #include "Debug.h"
 #include "imgui.h"
 
-void DrawGrid(const Matrix4x4& viewProjectionMatrix, const Matrix4x4& viewportMatrix) {
-	const float kGridHalfWidth = 2.0f;                                      // グリッドの半分の幅
-	const uint32_t kSubdivision = 10;                                       // 分割数
+void DrawGrid(const Matrix4x4& viewProjectionMatrix, const Matrix4x4& viewportMatrix,const float GridHalfWidth,const uint32_t Subdivision) {
+	const float kGridHalfWidth = GridHalfWidth;                            // グリッドの半分の幅
+	const uint32_t kSubdivision = Subdivision;                              // 分割数
 	const float kGridEvery = (kGridHalfWidth * 2.0f) / float(kSubdivision); // 1つの長さ
 
 	// 奥から手前への線を順々に引いていく

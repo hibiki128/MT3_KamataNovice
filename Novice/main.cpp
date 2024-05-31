@@ -10,10 +10,7 @@ const char kWindowTitle[] = "LE2B_20_ハギワラ_ヒビキ";
 
 bool IsCollision(const AABB& aabb, const Sphere& sphere) {
 	// 最近接点を求める
-	Vector3 closestPoint{
-		std::clamp(sphere.center.x, aabb.min.x, aabb.max.x),
-		std::clamp(sphere.center.y, aabb.min.y, aabb.max.y),
-		std::clamp(sphere.center.z, aabb.min.z, aabb.max.z)};
+	Vector3 closestPoint{std::clamp(sphere.center.x, aabb.min.x, aabb.max.x), std::clamp(sphere.center.y, aabb.min.y, aabb.max.y), std::clamp(sphere.center.z, aabb.min.z, aabb.max.z)};
 
 	// 最近接点と球の中心との距離を求める
 	float distance = Length(closestPoint - sphere.center);
@@ -93,7 +90,7 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 			color = WHITE;
 		}
 		SetAABB(aabb);
-		DrawGrid(viewProjectionMatrix, viewportMatrix);
+		DrawGrid(viewProjectionMatrix, viewportMatrix, 5.0f, 26);
 		DrawSphere(sphere, viewProjectionMatrix, viewportMatrix, WHITE);
 		DrawAABB(aabb, viewProjectionMatrix, viewportMatrix, color);
 
