@@ -38,13 +38,16 @@
     <ClCompile Include="C:\KamataEngine\DirectXGame\base\StringUtility.cpp">
       <Filter>KamataEngine\Source</Filter>
     </ClCompile>
-    <ClCompile Include="Matrix\M4x4.cpp">
+    <ClCompile Include="Matrix\MyMath.cpp">
       <Filter>KamataEngine</Filter>
     </ClCompile>
     <ClCompile Include="Debug.cpp">
       <Filter>KamataEngine</Filter>
     </ClCompile>
     <ClCompile Include="Vector3.cpp">
+      <Filter>KamataEngine</Filter>
+    </ClCompile>
+    <ClCompile Include="Matrix4x4.cpp">
       <Filter>KamataEngine</Filter>
     </ClCompile>
   </ItemGroup>
@@ -120,7 +123,7 @@
     <ClInclude Include="C:\KamataEngine\DirectXGame\base\StringUtility.h">
       <Filter>KamataEngine\Include</Filter>
     </ClInclude>
-    <ClInclude Include="Matrix\M4x4.h" />
+    <ClInclude Include="Matrix\MyMath.h" />
     <ClInclude Include="Debug.h" />
   </ItemGroup>
 </Project>

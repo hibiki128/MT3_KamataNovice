@@ -1,5 +1,6 @@
 #pragma once
-#include "Matrix/M4x4.h"
+#define NOMINMAX
+#include "Matrix/MyMath.h"
 #include "Vector2.h"
 #include "Vector3.h"
 #include "cmath"
@@ -40,6 +41,12 @@ struct AABB {
 	Vector3 max; //!< 最大点
 };
 
+struct OBB {
+	Vector3 center;          //!< 中心点
+	Vector3 orientations[3]; //!< 座標軸。正規化・直行必須
+	Vector3 size;            //!< 座標軸方向の長さの半分。中心から面までの距離
+};
+
 // グリッド描画
 void DrawGrid(const Matrix4x4& viewProjectionMatrix, const Matrix4x4& viewportMatrix, const float GridHalfWidth, const uint32_t Subdivision);
 
@@ -57,6 +64,9 @@ void DrawLineXY(const Vector3& start, const Vector3& end, uint32_t color);
 
 // AABBの描画
 void DrawAABB(const AABB& aabb, const Matrix4x4& viewProjectionMatrix, const Matrix4x4& viewportMatrix, uint32_t color);
+
+// OBBの描画
+void DrawOBB(const OBB& obb, const Matrix4x4& viewProjectionMatrix, const Matrix4x4& viewportMatrix, uint32_t color);
 
 void SetAABB(AABB& aabb);
 
@@ -87,3 +97,6 @@ bool IsCollision(const AABB& aabb1, const AABB& aabb2);
 
 // AABBと球体の衝突判定
 bool IsCollision(const AABB& aabb, const Sphere& sphere);
+
+// AABBと線分の衝突判定
+bool IsCollision(const AABB& aabb, const Segment& segment);
