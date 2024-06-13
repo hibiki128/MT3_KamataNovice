@@ -9,6 +9,30 @@
 const char kWindowTitle[] = "LE2B_20_ハギワラ_ヒビキ";
 
 
+bool IsCollision(const OBB& obb, const Segment& segment, const Matrix4x4& rotateMatrix) {
+	// OBBのWorldMatrixを作成
+	Matrix4x4 obbWorldMatrix = MakeOBBWorldMatrix(obb, rotateMatrix);
+
+	// OBBのWorldMatrixの逆行列を取得
+	Matrix4x4 obbWorldMatrixInverse = Inverse(obbWorldMatrix);
+
+	// セグメントの始点と終点をOBBのローカル空間に変換
+	Vector3 localOrigin = Transform(segment.origin, obbWorldMatrixInverse);
+	Vector3 localEnd = Transform(segment.origin + segment.diff, obbWorldMatrixInverse);
+
+	// OBBからAABBを作成
+	AABB localAABB = ConvertOBBToAABB(obb);
+
+	// ローカル空間でのセグメント
+	Segment localSegment;
+	localSegment.origin = localOrigin;
+	localSegment.diff = localEnd - localOrigin;
+
+	// ローカル空間でAABBとセグメントの衝突判定を行う
+	return IsCollision(localAABB, localSegment);
+}
+
+
 // Windowsアプリでのエントリーポイント(main関数)
 int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 
@@ -74,6 +98,11 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 		obb.orientations[2].y = rotateMatrix.m[2][1];
 		obb.orientations[2].z = rotateMatrix.m[2][2];
 
+		Vector3 start = Transform(Transform(segment.origin, viewProjectionMatrix), viewportMatrix);
+		Vector3 end = Transform(Transform(segment.origin + segment.diff, viewProjectionMatrix), viewportMatrix);
+
+		isHit = IsCollision(obb, segment, rotateMatrix);
+
 		///
 		/// ↑更新処理ここまで
 		///
@@ -91,12 +120,14 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 		ImGui::DragFloat3("obb.orientations", &obb.orientations[1].x, 0.01f);
 		ImGui::DragFloat3("obb.orientations", &obb.orientations[2].x, 0.01f);
 		ImGui::DragFloat3("obb.size", &obb.size.x, 0.01f);
+		ImGui::DragFloat3("segment.origin", &segment.origin.x, 0.01f);
+		ImGui::DragFloat3("segment.diff", &segment.diff.x, 0.01f);
 		ImGui::End();
 
 		color = isHit ? RED : WHITE;
 
 		DrawGrid(viewProjectionMatrix, viewportMatrix, 5.0f, 26);
-		Novice::DrawLine(start.x, start.y, end.x, end.y, WHITE);
+		Novice::DrawLine(static_cast<int>(start.x), static_cast<int>(start.y), static_cast<int>(end.x), static_cast<int>(end.y), WHITE);
 		DrawOBB(obb, viewProjectionMatrix, viewportMatrix, color);
 
 		///
