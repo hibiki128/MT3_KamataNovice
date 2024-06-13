@@ -8,42 +8,6 @@
 
 const char kWindowTitle[] = "LE2B_20_ハギワラ_ヒビキ";
 
-// 衝突判定関数の実装
-Matrix4x4 MakeOBBWorldMatrix(const OBB& obb, const Matrix4x4& rotateMatrix) {
-	Matrix4x4 translationMatrix = MakeTranslateMatrix(obb.center);
-	return Multiply(rotateMatrix, translationMatrix); // rotateMatrixを使用
-}
-
-AABB ConvertOBBToAABB(const OBB& obb) {
-	AABB aabb;
-	aabb.min = {-obb.size.x, -obb.size.y, -obb.size.z};
-	aabb.max = {obb.size.x, obb.size.y, obb.size.z};
-	return aabb;
-}
-
-bool IsCollision(const OBB& obb,const Sphere& sphere,const Matrix4x4& rotateMatrix) {
-
-	// OBBのWorldMatrixを作成
-	Matrix4x4 obbWorldMatrix = MakeOBBWorldMatrix(obb, rotateMatrix);
-
-	// OBBのWorldMatrixの逆行列を取得
-	Matrix4x4 obbWorldMatrixInverse = Inverse(obbWorldMatrix);
-
-	// Sphereの中心点をOBBのローカル空間に変換
-	Vector3 centerInOBBLocalSpace = Transform(sphere.center, obbWorldMatrixInverse);
-
-	// OBBからAABBを作成
-	AABB aabbOBBLocal = ConvertOBBToAABB(obb);
-
-	// ローカル空間でのSphere
-	Sphere sphereOBBLocal{centerInOBBLocalSpace, sphere.radius};
-
-	Vector3 closestPoint = {
-	    std::max(aabbOBBLocal.min.x, std::min(sphereOBBLocal.center.x, aabbOBBLocal.max.x)), std::max(aabbOBBLocal.min.y, std::min(sphereOBBLocal.center.y, aabbOBBLocal.max.y)),
-	    std::max(aabbOBBLocal.min.z, std::min(sphereOBBLocal.center.z, aabbOBBLocal.max.z))};
-	Vector3 distance = closestPoint - sphereOBBLocal.center;
-	return Dot(distance, distance) <= (sphereOBBLocal.radius * sphereOBBLocal.radius);
-}
 
 // Windowsアプリでのエントリーポイント(main関数)
 int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
@@ -66,9 +30,9 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
         .size{0.5f,               0.5f,               0.5f              }
     };
 
-	Sphere sphere{
-	    .center{0.0f, 0.0f, 0.0f},
-        .radius{0.5f}
+	Segment segment{
+	    .origin{-0.8f, -0.3f, 0.0f},
+        .diff{0.5f,  0.5f,  0.5f}
     };
 
 	// キー入力結果を受け取る箱
@@ -110,9 +74,6 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 		obb.orientations[2].y = rotateMatrix.m[2][1];
 		obb.orientations[2].z = rotateMatrix.m[2][2];
 
-		// ローカル空間で衝突判定
-		isHit = IsCollision(obb,sphere,rotateMatrix);
-
 		///
 		/// ↑更新処理ここまで
 		///
@@ -130,14 +91,12 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 		ImGui::DragFloat3("obb.orientations", &obb.orientations[1].x, 0.01f);
 		ImGui::DragFloat3("obb.orientations", &obb.orientations[2].x, 0.01f);
 		ImGui::DragFloat3("obb.size", &obb.size.x, 0.01f);
-		ImGui::DragFloat3("sphere.center", &sphere.center.x, 0.01f);
-		ImGui::DragFloat("sphere.radius", &sphere.radius, 0.01f);
 		ImGui::End();
 
 		color = isHit ? RED : WHITE;
 
 		DrawGrid(viewProjectionMatrix, viewportMatrix, 5.0f, 26);
-		DrawSphere(sphere, viewProjectionMatrix, viewportMatrix, WHITE);
+		Novice::DrawLine(start.x, start.y, end.x, end.y, WHITE);
 		DrawOBB(obb, viewProjectionMatrix, viewportMatrix, color);
 
 		///

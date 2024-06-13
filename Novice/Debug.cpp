@@ -401,7 +401,6 @@ bool IsCollision(const AABB& aabb1, const AABB& aabb2) {
 	}
 };
 
-
 bool IsCollision(const AABB& aabb, const Sphere& sphere) {
 	// 最近接点を求める
 	Vector3 closestPoint{std::clamp(sphere.center.x, aabb.min.x, aabb.max.x), std::clamp(sphere.center.y, aabb.min.y, aabb.max.y), std::clamp(sphere.center.z, aabb.min.z, aabb.max.z)};
@@ -462,3 +461,41 @@ bool IsCollision(const AABB& aabb, const Segment& segment) {
 		return false;
 	}
 }
+
+bool IsCollision(const OBB& obb, const Sphere& sphere, const Matrix4x4& rotateMatrix) {
+
+	// OBBのWorldMatrixを作成
+	Matrix4x4 obbWorldMatrix = MakeOBBWorldMatrix(obb, rotateMatrix);
+
+	// OBBのWorldMatrixの逆行列を取得
+	Matrix4x4 obbWorldMatrixInverse = Inverse(obbWorldMatrix);
+
+	// Sphereの中心点をOBBのローカル空間に変換
+	Vector3 centerInOBBLocalSpace = Transform(sphere.center, obbWorldMatrixInverse);
+
+	// OBBからAABBを作成
+	AABB aabbOBBLocal = ConvertOBBToAABB(obb);
+
+	// ローカル空間でのSphere
+	Sphere sphereOBBLocal{centerInOBBLocalSpace, sphere.radius};
+
+	Vector3 closestPoint = {
+	    std::max(aabbOBBLocal.min.x, std::min(sphereOBBLocal.center.x, aabbOBBLocal.max.x)), std::max(aabbOBBLocal.min.y, std::min(sphereOBBLocal.center.y, aabbOBBLocal.max.y)),
+	    std::max(aabbOBBLocal.min.z, std::min(sphereOBBLocal.center.z, aabbOBBLocal.max.z))};
+	Vector3 distance = closestPoint - sphereOBBLocal.center;
+	return Dot(distance, distance) <= (sphereOBBLocal.radius * sphereOBBLocal.radius);
+}
+
+// 衝突判定関数の実装
+Matrix4x4 MakeOBBWorldMatrix(const OBB& obb, const Matrix4x4& rotateMatrix) {
+	Matrix4x4 translationMatrix = MakeTranslateMatrix(obb.center);
+	return Multiply(rotateMatrix, translationMatrix); // rotateMatrixを使用
+}
+
+AABB ConvertOBBToAABB(const OBB& obb) {
+	AABB aabb;
+	aabb.min = {-obb.size.x, -obb.size.y, -obb.size.z};
+	aabb.max = {obb.size.x, obb.size.y, obb.size.z};
+	return aabb;
+}
+

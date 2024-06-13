@@ -77,6 +77,10 @@ Vector3 ClosestPoint(const Vector3& point, const Segment& segment);
 
 Vector3 Perpendicular(const Vector3& vector);
 
+// 衝突判定関数の実装
+Matrix4x4 MakeOBBWorldMatrix(const OBB& obb, const Matrix4x4& rotateMatrix);
+
+AABB ConvertOBBToAABB(const OBB& obb);
 // カメラ移動
 void CameraMove(Vector3& cameraRotate, Vector3& cameraTranslate, Vector2Int& clickPosition, char* keys, char* preKeys);
 
@@ -100,3 +104,6 @@ bool IsCollision(const AABB& aabb, const Sphere& sphere);
 
 // AABBと線分の衝突判定
 bool IsCollision(const AABB& aabb, const Segment& segment);
+
+// OBBと球体の当たり判定
+bool IsCollision(const OBB& obb, const Sphere& sphere, const Matrix4x4& rotateMatrix);
