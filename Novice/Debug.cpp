@@ -486,6 +486,29 @@ bool IsCollision(const OBB& obb, const Sphere& sphere, const Matrix4x4& rotateMa
 	return Dot(distance, distance) <= (sphereOBBLocal.radius * sphereOBBLocal.radius);
 }
 
+bool IsCollision(const OBB& obb, const Segment& segment, const Matrix4x4& rotateMatrix) {
+	// OBBのWorldMatrixを作成
+	Matrix4x4 obbWorldMatrix = MakeOBBWorldMatrix(obb, rotateMatrix);
+
+	// OBBのWorldMatrixの逆行列を取得
+	Matrix4x4 obbWorldMatrixInverse = Inverse(obbWorldMatrix);
+
+	// セグメントの始点と終点をOBBのローカル空間に変換
+	Vector3 localOrigin = Transform(segment.origin, obbWorldMatrixInverse);
+	Vector3 localEnd = Transform(segment.origin + segment.diff, obbWorldMatrixInverse);
+
+	// OBBからAABBを作成
+	AABB localAABB = ConvertOBBToAABB(obb);
+
+	// ローカル空間でのセグメント
+	Segment localSegment;
+	localSegment.origin = localOrigin;
+	localSegment.diff = localEnd - localOrigin;
+
+	// ローカル空間でAABBとセグメントの衝突判定を行う
+	return IsCollision(localAABB, localSegment);
+}
+
 // 衝突判定関数の実装
 Matrix4x4 MakeOBBWorldMatrix(const OBB& obb, const Matrix4x4& rotateMatrix) {
 	Matrix4x4 translationMatrix = MakeTranslateMatrix(obb.center);
