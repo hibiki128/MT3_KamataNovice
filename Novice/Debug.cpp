@@ -1,5 +1,6 @@
 #include "Debug.h"
 #include "imgui.h"
+#include <algorithm>
 
 void DrawGrid(const Matrix4x4& viewProjectionMatrix, const Matrix4x4& viewportMatrix,const float GridHalfWidth,const uint32_t Subdivision) {
 	const float kGridHalfWidth = GridHalfWidth;                            // グリッドの半分の幅
@@ -173,6 +174,44 @@ Vector3 Project(const Vector3& v1, const Vector3& v2) {
 	float lenSquared = LengthSquared(v2);
 	float scalar = dot / lenSquared;
 	return {v2.x * scalar, v2.y * scalar, v2.z * scalar};
+}
+
+void DrawOBB(const OBB& obb, const Matrix4x4& viewProjectionMatrix, const Matrix4x4& viewportMatrix, uint32_t color) {
+	Vector3 halfSizeX = obb.orientations[0] * obb.size.x;
+	Vector3 halfSizeY = obb.orientations[1] * obb.size.y;
+	Vector3 halfSizeZ = obb.orientations[2] * obb.size.z;
+
+	Vector3 points[8];
+
+	points[0] = obb.center + halfSizeX + halfSizeY + halfSizeZ;
+	points[1] = obb.center + halfSizeX + halfSizeY - halfSizeZ;
+	points[2] = obb.center + halfSizeX - halfSizeY + halfSizeZ;
+	points[3] = obb.center + halfSizeX - halfSizeY - halfSizeZ;
+
+	points[4] = obb.center - halfSizeX + halfSizeY + halfSizeZ;
+	points[5] = obb.center - halfSizeX + halfSizeY - halfSizeZ;
+	points[6] = obb.center - halfSizeX - halfSizeY + halfSizeZ;
+	points[7] = obb.center - halfSizeX - halfSizeY - halfSizeZ;
+
+	for (int i = 0; i < 8; ++i) {
+		points[i] = Transform(points[i], viewProjectionMatrix);
+		points[i] = Transform(points[i], viewportMatrix);
+	}
+
+	DrawLineXY(points[0], points[1], color);
+	DrawLineXY(points[1], points[3], color);
+	DrawLineXY(points[3], points[2], color);
+	DrawLineXY(points[2], points[0], color);
+
+	DrawLineXY(points[4], points[5], color);
+	DrawLineXY(points[5], points[7], color);
+	DrawLineXY(points[7], points[6], color);
+	DrawLineXY(points[6], points[4], color);
+
+	DrawLineXY(points[0], points[4], color);
+	DrawLineXY(points[1], points[5], color);
+	DrawLineXY(points[2], points[6], color);
+	DrawLineXY(points[3], points[7], color);
 }
 
 void SetAABB(AABB& aabb) {
@@ -361,3 +400,125 @@ bool IsCollision(const AABB& aabb1, const AABB& aabb2) {
 		return false;
 	}
 };
+
+bool IsCollision(const AABB& aabb, const Sphere& sphere) {
+	// 最近接点を求める
+	Vector3 closestPoint{std::clamp(sphere.center.x, aabb.min.x, aabb.max.x), std::clamp(sphere.center.y, aabb.min.y, aabb.max.y), std::clamp(sphere.center.z, aabb.min.z, aabb.max.z)};
+
+	// 最近接点と球の中心との距離を求める
+	float distance = Length(closestPoint - sphere.center);
+
+	// 距離が半径より小さければ衝突
+	if (distance <= sphere.radius) {
+		return true;
+	} else {
+		return false;
+	}
+}
+
+bool IsCollision(const AABB& aabb, const Segment& segment) {
+	Vector3 invDir = Vector3(
+	    segment.diff.x != 0 ? 1.0f / segment.diff.x : std::numeric_limits<float>::infinity(), segment.diff.y != 0 ? 1.0f / segment.diff.y : std::numeric_limits<float>::infinity(),
+	    segment.diff.z != 0 ? 1.0f / segment.diff.z : std::numeric_limits<float>::infinity());
+
+	Vector3 tNear, tFar;
+
+	// x軸の交差点を計算
+	if (invDir.x >= 0) {
+		tNear.x = (aabb.min.x - segment.origin.x) * invDir.x;
+		tFar.x = (aabb.max.x - segment.origin.x) * invDir.x;
+	} else {
+		tNear.x = (aabb.max.x - segment.origin.x) * invDir.x;
+		tFar.x = (aabb.min.x - segment.origin.x) * invDir.x;
+	}
+
+	// y軸の交差点を計算
+	if (invDir.y >= 0) {
+		tNear.y = (aabb.min.y - segment.origin.y) * invDir.y;
+		tFar.y = (aabb.max.y - segment.origin.y) * invDir.y;
+	} else {
+		tNear.y = (aabb.max.y - segment.origin.y) * invDir.y;
+		tFar.y = (aabb.min.y - segment.origin.y) * invDir.y;
+	}
+
+	// z軸の交差点を計算
+	if (invDir.z >= 0) {
+		tNear.z = (aabb.min.z - segment.origin.z) * invDir.z;
+		tFar.z = (aabb.max.z - segment.origin.z) * invDir.z;
+	} else {
+		tNear.z = (aabb.max.z - segment.origin.z) * invDir.z;
+		tFar.z = (aabb.min.z - segment.origin.z) * invDir.z;
+	}
+
+	// AABBとの衝突点(貫通点)のtが小さい方
+	float tmin = std::max(std::max(tNear.x, tNear.y), tNear.z);
+	float tmax = std::min(std::min(tFar.x, tFar.y), tFar.z);
+
+	// tminがtmax以下、かつtmaxが0以上でtminが1以下の場合、衝突している
+	if (tmin <= tmax && tmax >= 0.0f && tmin <= 1.0f) {
+		return true;
+	} else {
+		return false;
+	}
+}
+
+bool IsCollision(const OBB& obb, const Sphere& sphere, const Matrix4x4& rotateMatrix) {
+
+	// OBBのWorldMatrixを作成
+	Matrix4x4 obbWorldMatrix = MakeOBBWorldMatrix(obb, rotateMatrix);
+
+	// OBBのWorldMatrixの逆行列を取得
+	Matrix4x4 obbWorldMatrixInverse = Inverse(obbWorldMatrix);
+
+	// Sphereの中心点をOBBのローカル空間に変換
+	Vector3 centerInOBBLocalSpace = Transform(sphere.center, obbWorldMatrixInverse);
+
+	// OBBからAABBを作成
+	AABB aabbOBBLocal = ConvertOBBToAABB(obb);
+
+	// ローカル空間でのSphere
+	Sphere sphereOBBLocal{centerInOBBLocalSpace, sphere.radius};
+
+	Vector3 closestPoint = {
+	    std::max(aabbOBBLocal.min.x, std::min(sphereOBBLocal.center.x, aabbOBBLocal.max.x)), std::max(aabbOBBLocal.min.y, std::min(sphereOBBLocal.center.y, aabbOBBLocal.max.y)),
+	    std::max(aabbOBBLocal.min.z, std::min(sphereOBBLocal.center.z, aabbOBBLocal.max.z))};
+	Vector3 distance = closestPoint - sphereOBBLocal.center;
+	return Dot(distance, distance) <= (sphereOBBLocal.radius * sphereOBBLocal.radius);
+}
+
+bool IsCollision(const OBB& obb, const Segment& segment, const Matrix4x4& rotateMatrix) {
+	// OBBのWorldMatrixを作成
+	Matrix4x4 obbWorldMatrix = MakeOBBWorldMatrix(obb, rotateMatrix);
+
+	// OBBのWorldMatrixの逆行列を取得
+	Matrix4x4 obbWorldMatrixInverse = Inverse(obbWorldMatrix);
+
+	// セグメントの始点と終点をOBBのローカル空間に変換
+	Vector3 localOrigin = Transform(segment.origin, obbWorldMatrixInverse);
+	Vector3 localEnd = Transform(segment.origin + segment.diff, obbWorldMatrixInverse);
+
+	// OBBからAABBを作成
+	AABB localAABB = ConvertOBBToAABB(obb);
+
+	// ローカル空間でのセグメント
+	Segment localSegment;
+	localSegment.origin = localOrigin;
+	localSegment.diff = localEnd - localOrigin;
+
+	// ローカル空間でAABBとセグメントの衝突判定を行う
+	return IsCollision(localAABB, localSegment);
+}
+
+// 衝突判定関数の実装
+Matrix4x4 MakeOBBWorldMatrix(const OBB& obb, const Matrix4x4& rotateMatrix) {
+	Matrix4x4 translationMatrix = MakeTranslateMatrix(obb.center);
+	return Multiply(rotateMatrix, translationMatrix); // rotateMatrixを使用
+}
+
+AABB ConvertOBBToAABB(const OBB& obb) {
+	AABB aabb;
+	aabb.min = {-obb.size.x, -obb.size.y, -obb.size.z};
+	aabb.max = {obb.size.x, obb.size.y, obb.size.z};
+	return aabb;
+}
+
