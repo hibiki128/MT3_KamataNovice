@@ -169,12 +169,54 @@ void DrawAABB(const AABB& aabb, const Matrix4x4& viewProjectionMatrix, const Mat
 	DrawLineXY(points[3], points[7], color);
 }
 
+void DrawBezier(const Vector3& controlPoint0, const Vector3& controlPoint1, const Vector3& controlPoint2, const Matrix4x4& viewProjectionMatrix, const Matrix4x4& viewportMatrix, uint32_t color) {
+	const int numSegments = 100; // 曲線を描画するセグメント数
+	Vector3 prevPoint = controlPoint0;
+
+	for (int i = 1; i <= numSegments; ++i) {
+		float t = static_cast<float>(i) / numSegments;
+
+		// ベジェ曲線の現在の点を計算
+		Vector3 p0 = Lerp(controlPoint0, controlPoint1, t);
+		Vector3 p1 = Lerp(controlPoint1, controlPoint2, t);
+		Vector3 currentPoint = Lerp(p0, p1, t);
+
+		// 変換行列を適用
+		Vector3 transformedPrevPoint = Transform(prevPoint, viewProjectionMatrix);
+		transformedPrevPoint = Transform(transformedPrevPoint, viewportMatrix);
+
+		Vector3 transformedCurrentPoint = Transform(currentPoint, viewProjectionMatrix);
+		transformedCurrentPoint = Transform(transformedCurrentPoint, viewportMatrix);
+
+		// ラインを描画
+		Novice::DrawLine(
+		    static_cast<int>(transformedPrevPoint.x), static_cast<int>(transformedPrevPoint.y), static_cast<int>(transformedCurrentPoint.x), static_cast<int>(transformedCurrentPoint.y), color);
+
+		prevPoint = currentPoint;
+	}
+
+	// 制御点を描画
+	Sphere sphere;
+	sphere.radius = 0.01f;
+
+	sphere.center = controlPoint0;
+	DrawSphere(sphere, viewProjectionMatrix, viewportMatrix, BLACK);
+
+	sphere.center = controlPoint1;
+	DrawSphere(sphere, viewProjectionMatrix, viewportMatrix, BLACK);
+
+	sphere.center = controlPoint2;
+	DrawSphere(sphere, viewProjectionMatrix, viewportMatrix, BLACK);
+}
+
 Vector3 Project(const Vector3& v1, const Vector3& v2) {
 	float dot = Dot(v1, v2);
 	float lenSquared = LengthSquared(v2);
 	float scalar = dot / lenSquared;
 	return {v2.x * scalar, v2.y * scalar, v2.z * scalar};
 }
+
+Vector3 Lerp(const Vector3& v1, const Vector3& v2, float t) { return Vector3(v1.x + t * (v2.x - v1.x), v1.y + t * (v2.y - v1.y), v1.z + t * (v2.z - v1.z)); }
 
 void DrawOBB(const OBB& obb, const Matrix4x4& viewProjectionMatrix, const Matrix4x4& viewportMatrix, uint32_t color) {
 	Vector3 halfSizeX = obb.orientations[0] * obb.size.x;
