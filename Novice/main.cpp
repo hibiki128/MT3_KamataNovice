@@ -8,68 +8,46 @@
 
 const char kWindowTitle[] = "LE2B_20_ハギワラ_ヒビキ";
 
-// 軸に対するOBBの投影範囲を計算する関数
-void projectOBB(const OBB& obb, const Vector3& axis, float& min, float& max) {
-	float centerProjection = Dot(obb.center, axis);
-	float radius = std::abs(Dot(obb.orientations[0], axis)) * obb.size.x + std::abs(Dot(obb.orientations[1], axis)) * obb.size.y + std::abs(Dot(obb.orientations[2], axis)) * obb.size.z;
+Vector3 Lerp(const Vector3& v1, const Vector3& v2, float t) { return Vector3(v1.x + t * (v2.x - v1.x), v1.y + t * (v2.y - v1.y), v1.z + t * (v2.z - v1.z)); }
 
-	min = centerProjection - radius;
-	max = centerProjection + radius;
-}
+void DrawBezier(const Vector3& controlPoint0, const Vector3& controlPoint1, const Vector3& controlPoint2, const Matrix4x4& viewProjectionMatrix, const Matrix4x4& viewportMatrix, uint32_t color) {
+	const int numSegments = 100; // 曲線を描画するセグメント数
+	Vector3 prevPoint = controlPoint0;
 
-// 軸に投影するための関数
-bool testAxis(const Vector3& axis, const OBB& obb1, const OBB& obb2) {
-	float min1, max1, min2, max2;
-	projectOBB(obb1, axis, min1, max1);
-	projectOBB(obb2, axis, min2, max2);
+	for (int i = 1; i <= numSegments; ++i) {
+		float t = static_cast<float>(i) / numSegments;
 
-	float sumSpan = (max1 - min1) + (max2 - min2);
-	float longSpan = std::max(max1, max2) - std::min(min1, min2);
+		// ベジェ曲線の現在の点を計算
+		Vector3 p0 = Lerp(controlPoint0, controlPoint1, t);
+		Vector3 p1 = Lerp(controlPoint1, controlPoint2, t);
+		Vector3 currentPoint = Lerp(p0, p1, t);
 
-	return sumSpan >= longSpan;
-}
+		// 変換行列を適用
+		Vector3 transformedPrevPoint = Transform(prevPoint, viewProjectionMatrix);
+		transformedPrevPoint = Transform(transformedPrevPoint, viewportMatrix);
 
-// OBB同士の衝突判定
-bool IsCollision(const OBB& obb1, const OBB& obb2) {
-	Vector3 axes[15] = {
-	    obb1.orientations[0],
-	    obb1.orientations[1],
-	    obb1.orientations[2],
-	    obb2.orientations[0],
-	    obb2.orientations[1],
-	    obb2.orientations[2],
-	    Cross(obb1.orientations[0], obb2.orientations[0]),
-	    Cross(obb1.orientations[0], obb2.orientations[1]),
-	    Cross(obb1.orientations[0], obb2.orientations[2]),
-	    Cross(obb1.orientations[1], obb2.orientations[0]),
-	    Cross(obb1.orientations[1], obb2.orientations[1]),
-	    Cross(obb1.orientations[1], obb2.orientations[2]),
-	    Cross(obb1.orientations[2], obb2.orientations[0]),
-	    Cross(obb1.orientations[2], obb2.orientations[1]),
-	    Cross(obb1.orientations[2], obb2.orientations[2]),
-	};
+		Vector3 transformedCurrentPoint = Transform(currentPoint, viewProjectionMatrix);
+		transformedCurrentPoint = Transform(transformedCurrentPoint, viewportMatrix);
 
-	for (const Vector3& axis : axes) {
-		if (Length(axis) > 0.0001f && !testAxis(Normalize(axis), obb1, obb2)) {
-			return false;
-		}
+		// ラインを描画
+		Novice::DrawLine(
+		    static_cast<int>(transformedPrevPoint.x), static_cast<int>(transformedPrevPoint.y), static_cast<int>(transformedCurrentPoint.x), static_cast<int>(transformedCurrentPoint.y), color);
+
+		prevPoint = currentPoint;
 	}
 
-	return true;
-}
-void MakeOBBOrientations(OBB& obb, Vector3& rotate) {
-	Matrix4x4 rotateMatrix = MakeRotateXMatrix(rotate.x) * (MakeRotateYMatrix(rotate.y) * MakeRotateZMatrix(rotate.z));
-	obb.orientations[0].x = rotateMatrix.m[0][0];
-	obb.orientations[0].y = rotateMatrix.m[0][1];
-	obb.orientations[0].z = rotateMatrix.m[0][2];
+	// 制御点を描画
+	Sphere sphere;
+	sphere.radius = 0.01f;
 
-	obb.orientations[1].x = rotateMatrix.m[1][0];
-	obb.orientations[1].y = rotateMatrix.m[1][1];
-	obb.orientations[1].z = rotateMatrix.m[1][2];
+	sphere.center = controlPoint0;
+	DrawSphere(sphere, viewProjectionMatrix, viewportMatrix, BLACK);
 
-	obb.orientations[2].x = rotateMatrix.m[2][0];
-	obb.orientations[2].y = rotateMatrix.m[2][1];
-	obb.orientations[2].z = rotateMatrix.m[2][2];
+	sphere.center = controlPoint1;
+	DrawSphere(sphere, viewProjectionMatrix, viewportMatrix, BLACK);
+
+	sphere.center = controlPoint2;
+	DrawSphere(sphere, viewProjectionMatrix, viewportMatrix, BLACK);
 }
 
 // Windowsアプリでのエントリーポイント(main関数)
@@ -80,24 +58,17 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 	Vector3 cameraTranslate{0.0f, 1.9f, -6.49f};
 	Vector3 cameraRotate{0.26f, 0.0f, 0.0f};
 	Vector3 cameraPosition{0.0f, 1.0f, -5.0f};
-	uint32_t color = WHITE;
-	bool isHit = false;
+	uint32_t color = BLUE;
+	/*bool isHit = false;*/
 	Vector2Int ClickPosition = {};
 	const int kWindowWidth = 1280;
 	const int kWindowHeight = 720;
 
-	Vector3 rotate1{0.0f, 0.0f, 0.0f};
-	Vector3 rotate2{-0.05f, -2.49f, 0.15f};
-	OBB obb1{
-	    .center{0.0f,               0.0f,               0.0f              },
-        .orientations = {{1.0f, 0.0f, 0.0f}, {0.0f, 1.0f, 0.0f}, {0.0f, 0.0f, 1.0f}},
-        .size{0.83f,              0.26f,              0.24f             }
-    };
-	OBB obb2{
-	    .center{0.9f,               0.66f,              0.78f             },
-        .orientations = {{1.0f, 0.0f, 0.0f}, {0.0f, 1.0f, 0.0f}, {0.0f, 0.0f, 1.0f}},
-        .size{0.5f,               0.37f,              0.5f              }
-    };
+	Vector3 controlPoints[3] = {
+	    {-0.8f, 0.58f, 1.0f },
+	    {1.76f, 1.0f,  -0.3f},
+	    {0.94f, -0.7f, 2.3f },
+	};
 
 	// キー入力結果を受け取る箱
 	char keys[256] = {0};
@@ -124,11 +95,6 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 
 		CameraMove(cameraRotate, cameraTranslate, ClickPosition, keys, preKeys);
 
-		MakeOBBOrientations(obb1, rotate1);
-		MakeOBBOrientations(obb2, rotate2);
-
-		isHit = IsCollision(obb1, obb2);
-
 		///
 		/// ↑更新処理ここまで
 		///
@@ -138,35 +104,13 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 		///
 
 		ImGui::Begin("Window");
-		if (ImGui::TreeNode("OBB1")) {
-			ImGui::DragFloat3("obb.center", &obb1.center.x, 0.01f);
-			ImGui::SliderAngle("rotateX", &rotate1.x);
-			ImGui::SliderAngle("rotateY", &rotate1.y);
-			ImGui::SliderAngle("rotateZ", &rotate1.z);
-			ImGui::DragFloat3("obb.orientations", &obb1.orientations[0].x, 0.01f);
-			ImGui::DragFloat3("obb.orientations", &obb1.orientations[1].x, 0.01f);
-			ImGui::DragFloat3("obb.orientations", &obb1.orientations[2].x, 0.01f);
-			ImGui::DragFloat3("obb.size", &obb1.size.x, 0.01f);
-			ImGui::TreePop();
-		}
-		if (ImGui::TreeNode("OBB2")) {
-			ImGui::DragFloat3("obb.center", &obb2.center.x, 0.01f);
-			ImGui::SliderAngle("rotateX", &rotate2.x);
-			ImGui::SliderAngle("rotateY", &rotate2.y);
-			ImGui::SliderAngle("rotateZ", &rotate2.z);
-			ImGui::DragFloat3("obb.orientations", &obb2.orientations[0].x, 0.01f);
-			ImGui::DragFloat3("obb.orientations", &obb2.orientations[1].x, 0.01f);
-			ImGui::DragFloat3("obb.orientations", &obb2.orientations[2].x, 0.01f);
-			ImGui::DragFloat3("obb.size", &obb2.size.x, 0.01f);
-			ImGui::TreePop();
-		}
+		ImGui::DragFloat3("controlPoints[0]", &controlPoints[0].x, 0.01f);
+		ImGui::DragFloat3("controlPoints[1]", &controlPoints[1].x, 0.01f);
+		ImGui::DragFloat3("controlPoints[2]", &controlPoints[2].x, 0.01f);
 		ImGui::End();
 
-		color = isHit ? RED : WHITE;
-
 		DrawGrid(viewProjectionMatrix, viewportMatrix, 5.0f, 26);
-		DrawOBB(obb1, viewProjectionMatrix, viewportMatrix, color);
-		DrawOBB(obb2, viewProjectionMatrix, viewportMatrix, WHITE);
+		DrawBezier(controlPoints[0], controlPoints[1], controlPoints[2], viewProjectionMatrix, viewportMatrix, color);
 
 		///
 		/// ↑描画処理ここまで
