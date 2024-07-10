@@ -8,18 +8,6 @@
 
 const char kWindowTitle[] = "LE2B_20_ハギワラ_ヒビキ";
 
-// 線を描画する関数
-void DrawLineBetweenSpheres(const Vector3& point1, const Vector3& point2, const Matrix4x4& viewProjectionMatrix, const Matrix4x4& viewportMatrix, uint32_t color) {
-	// 3D座標を2Dスクリーン座標に変換
-	Vector3 screenPoint1 = Transform(point1, viewProjectionMatrix);
-	screenPoint1 = Transform(screenPoint1, viewportMatrix);
-	Vector3 screenPoint2 = Transform(point2, viewProjectionMatrix);
-	screenPoint2 = Transform(screenPoint2, viewportMatrix);
-
-	// 線を描画
-	Novice::DrawLine(int(screenPoint1.x), int(screenPoint1.y), int(screenPoint2.x), int(screenPoint2.y), color);
-}
-
 // Windowsアプリでのエントリーポイント(main関数)
 int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 
@@ -34,24 +22,16 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 	const int kWindowHeight = 720;
 	Vector2Int ClickPosition = {};
 
-	// 各部位の初期情報
-	Vector3 translates[3] = {
-	    {0.2f, 1.0f, 0.0f},
-	    {0.4f, 0.0f, 0.0f},
-	    {0.3f, 0.0f, 0.0f},
-	};
-
-	Vector3 rotates[3] = {
-	    {0.0f, 0.0f, -6.8f},
-	    {0.0f, 0.0f, -1.4f},
-	    {0.0f, 0.0f, 0.0f },
-	};
-
-	Vector3 scales[3] = {
-	    {1.0f, 1.0f, 1.0f},
-	    {1.0f, 1.0f, 1.0f},
-	    {1.0f, 1.0f, 1.0f},
-	};
+	Vector3 a{0.2f, 1.0f, 0.0f};
+	Vector3 b{2.4f, 3.1f, 1.2f};
+	Vector3 c = a + b;
+	Vector3 d = a - b;
+	Vector3 e = a * 2.4f;
+	Vector3 rotate{0.4f, 1.43f, -0.8f};
+	Matrix4x4 rotateXMatrix = MakeRotateXMatrix(rotate.x);
+	Matrix4x4 rotateYMatrix = MakeRotateYMatrix(rotate.y);
+	Matrix4x4 rotateZMatrix = MakeRotateZMatrix(rotate.z);
+	Matrix4x4 rotateMatrix = rotateXMatrix * rotateYMatrix * rotateZMatrix;
 
 	// キー入力結果を受け取る箱
 	char keys[256] = {0};
@@ -66,6 +46,10 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 		memcpy(preKeys, keys, 256);
 		Novice::GetHitKeyStateAll(keys);
 
+		///
+		/// ↓更新処理ここから
+		///
+
 		// カメラの計算
 		Matrix4x4 cameraMatrix = MakeAffineMatrix({1.0f, 1.0f, 1.0f}, cameraRotate, cameraPosition + cameraTranslate);
 		Matrix4x4 viewMatrix = Inverse(cameraMatrix);
@@ -73,68 +57,31 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 		Matrix4x4 viewProjectionMatrix = Multiply(viewMatrix, projectionMatrix);
 		Matrix4x4 viewportMatrix = MakeViewPortMatrix(0, 0, float(kWindowWidth), float(kWindowHeight), 0.0f, 1.0f);
 
-		// 更新処理
-		CameraMove(cameraRotate, cameraTranslate, ClickPosition, keys, preKeys);
+		///
+		/// ↑更新処理ここまで
+		///
 
-		// 肩のワールド変換行列を計算
-		Matrix4x4 shoulderScaleMatrix = MakeScaleMatrix(scales[0]);
-		Matrix4x4 shoulderRotateMatrix = MakeRotateXYZMatrix(rotates[0]);
-		Matrix4x4 shoulderTranslateMatrix = MakeTranslateMatrix(translates[0]);
-		Matrix4x4 shoulderWorldMatrix = Multiply(shoulderScaleMatrix, Multiply(shoulderRotateMatrix, shoulderTranslateMatrix));
+		///
+		/// ↓描画処理ここから
+		///
 
-		// ひじのワールド変換行列を計算
-		Matrix4x4 elbowScaleMatrix = MakeScaleMatrix(scales[1]);
-		Matrix4x4 elbowRotateMatrix = MakeRotateXYZMatrix(rotates[1]);
-		Matrix4x4 elbowTranslateMatrix = MakeTranslateMatrix(translates[1]);
-		Matrix4x4 elbowLocalMatrix = Multiply(elbowScaleMatrix, Multiply(elbowRotateMatrix, elbowTranslateMatrix));
-		Matrix4x4 elbowWorldMatrix = Multiply(elbowLocalMatrix, shoulderWorldMatrix);
-
-		// 手のワールド変換行列を計算
-		Matrix4x4 handScaleMatrix = MakeScaleMatrix(scales[2]);
-		Matrix4x4 handRotateMatrix = MakeRotateXYZMatrix(rotates[2]);
-		Matrix4x4 handTranslateMatrix = MakeTranslateMatrix(translates[2]);
-		Matrix4x4 handLocalMatrix = Multiply(handScaleMatrix, Multiply(handRotateMatrix, handTranslateMatrix));
-		Matrix4x4 handWorldMatrix = Multiply(handLocalMatrix, elbowWorldMatrix);
-
-		// 肩、ひじ、手の球を定義
-		Sphere shoulderSphere{
-		    {shoulderWorldMatrix.m[3][0], shoulderWorldMatrix.m[3][1], shoulderWorldMatrix.m[3][2]},
-            0.1f
-        };
-		Sphere elbowSphere{
-		    {elbowWorldMatrix.m[3][0], elbowWorldMatrix.m[3][1], elbowWorldMatrix.m[3][2]},
-            0.1f
-        };
-		Sphere handSphere{
-		    {handWorldMatrix.m[3][0], handWorldMatrix.m[3][1], handWorldMatrix.m[3][2]},
-            0.1f
-        };
-
-		// 描画処理
 		ImGui::Begin("Window");
-		for (int i = 0; i < 3; ++i) {
-			char labelTranslate[20];
-			char labelRotate[20];
-			char labelScale[20];
-			sprintf_s(labelTranslate, "translates[%d]", i);
-			sprintf_s(labelRotate, "rotates[%d]", i);
-			sprintf_s(labelScale, "scales[%d]", i);
-
-			ImGui::DragFloat3(labelTranslate, &translates[i].x, 0.01f);
-			ImGui::DragFloat3(labelRotate, &rotates[i].x, 0.01f);
-			ImGui::DragFloat3(labelScale, &scales[i].x, 0.01f);
-		}
+		ImGui::Text("c:%f, %f, %f", c.x, c.y, c.z);
+		ImGui::Text("d:%f, %f, %f", d.x, d.y, d.z);
+		ImGui::Text("e:%f, %f, %f", e.x, e.y, e.z);
+		ImGui::Text(
+		    "matrix:\n%f, %f, %f, %f\n%f, %f, %f, %f\n%f, %f, %f, %f\n%f, %f, %f, %f\n",
+			rotateMatrix.m[0][0], rotateMatrix.m[0][1], rotateMatrix.m[0][2], rotateMatrix.m[0][3], 
+			rotateMatrix.m[1][0],rotateMatrix.m[1][1], rotateMatrix.m[1][2], rotateMatrix.m[1][3],
+			rotateMatrix.m[2][0], rotateMatrix.m[2][1], rotateMatrix.m[2][2], rotateMatrix.m[2][3], 
+			rotateMatrix.m[3][0],rotateMatrix.m[3][1], rotateMatrix.m[3][2], rotateMatrix.m[3][3]);
 		ImGui::End();
 
 		DrawGrid(viewProjectionMatrix, viewportMatrix, 2.0f, 10);
-		// 球を描画
-		DrawSphere(shoulderSphere, viewProjectionMatrix, viewportMatrix, RED);
-		DrawSphere(elbowSphere, viewProjectionMatrix, viewportMatrix, GREEN);
-		DrawSphere(handSphere, viewProjectionMatrix, viewportMatrix, BLUE);
 
-		// 線を描画
-		DrawLineBetweenSpheres(shoulderSphere.center, elbowSphere.center, viewProjectionMatrix, viewportMatrix, WHITE);
-		DrawLineBetweenSpheres(elbowSphere.center, handSphere.center, viewProjectionMatrix, viewportMatrix, WHITE);
+		///
+		/// ↑描画処理ここまで
+		///
 
 		// フレームの終了
 		Novice::EndFrame();

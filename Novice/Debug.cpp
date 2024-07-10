@@ -209,6 +209,18 @@ void DrawBezier(const Vector3& controlPoint0, const Vector3& controlPoint1, cons
 	DrawSphere(sphere, viewProjectionMatrix, viewportMatrix, BLACK);
 }
 
+// 線を描画する関数
+void DrawLineBetweenSpheres(const Vector3& point1, const Vector3& point2, const Matrix4x4& viewProjectionMatrix, const Matrix4x4& viewportMatrix, uint32_t color) {
+	// 3D座標を2Dスクリーン座標に変換
+	Vector3 screenPoint1 = Transform(point1, viewProjectionMatrix);
+	screenPoint1 = Transform(screenPoint1, viewportMatrix);
+	Vector3 screenPoint2 = Transform(point2, viewProjectionMatrix);
+	screenPoint2 = Transform(screenPoint2, viewportMatrix);
+
+	// 線を描画
+	Novice::DrawLine(int(screenPoint1.x), int(screenPoint1.y), int(screenPoint2.x), int(screenPoint2.y), color);
+}
+
 Vector3 Project(const Vector3& v1, const Vector3& v2) {
 	float dot = Dot(v1, v2);
 	float lenSquared = LengthSquared(v2);
