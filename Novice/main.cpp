@@ -54,7 +54,7 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 	sphere.radius = 0.05f;
 
 	Line line{};
-	line.origin = {0.0f, 4.0f, 0.0f};
+	line.origin = {0.0f, 2.0f, 0.0f};
 	line.diff = sphere.center;
 
 	// キー入力結果を受け取る箱
@@ -87,10 +87,10 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 			PendulumMovement(pendulum, sphere.center);
 		}
 
-		Vector3 start = Transform(Transform(line.origin, viewportMatrix),viewProjectionMatrix));
-		Vector3 end = Transform(Transform(line.origin + line.diff, viewportMatrix ), viewProjectionMatrix);
-
 		line.diff = sphere.center - line.origin;
+
+		Vector3 start = Transform(Transform(line.origin, viewProjectionMatrix), viewportMatrix);
+		Vector3 end = Transform(Transform(line.origin + line.diff, viewProjectionMatrix), viewportMatrix);
 
 		///
 		/// ↑更新処理ここまで
