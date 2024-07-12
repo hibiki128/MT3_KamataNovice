@@ -25,7 +25,7 @@ struct Ball {
 	unsigned int color;
 };
 
-void SpringMove(Spring& spring, Ball& ball) {
+void SpringMove(Spring& spring, Ball& ball, const Vector3& Gravity) {
 	Vector3 diff = ball.position - spring.anchor;
 	float length = Length(diff);
 	if (length != 0.0f) {
@@ -37,6 +37,9 @@ void SpringMove(Spring& spring, Ball& ball) {
 		Vector3 force = restoringForce + dampringForce;
 		ball.acceleration = force / ball.mass;
 	}
+	// 重力加速度を加算
+	ball.acceleration += Gravity;
+
 	// 加速度も速度もどちらも秒を基準にした値である
 	// それが、1/60秒(deltaTime)適用されたと考える
 	ball.velocity += ball.acceleration * DELTA_TIME;
@@ -58,13 +61,13 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 	Vector2Int ClickPosition = {};
 
 	Spring spring{};
-	spring.anchor = {0.0f, 0.0f, 0.0f};
-	spring.naturalLength = 1.0f;
+	spring.anchor = {0.0f, 1.0f, 0.0f};
+	spring.naturalLength = 0.7f;
 	spring.stiffness = 100.0f;
 	spring.dampingCoefficient = 2.0f;
 
 	Ball ball{};
-	ball.position = {1.2f, 0.0f, 0.0f};
+	ball.position = {0.8f, 0.2f, 0.0f};
 	ball.mass = 2.0f;
 	ball.radius = 0.05f;
 	ball.color = BLUE;
@@ -74,8 +77,10 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 	sphere.radius = ball.radius;
 
 	Line line{};
-	line.origin = {0.0f, 0.0f, 0.0f};
+	line.origin = {0.0f, 2.0f, 0.0f};
 	line.diff = sphere.center;
+
+	const Vector3 kGravity{0.0f, -9.8f, 0.0f};
 
 	bool isStart = false;
 
@@ -106,12 +111,12 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 		CameraMove(cameraRotate, cameraTranslate, ClickPosition, keys, preKeys);
 
 		if (isStart) {
-			SpringMove(spring, ball);
+			SpringMove(spring, ball, kGravity);
 		};
-		
+
 		sphere.center = ball.position;
 
-		line.diff = sphere.center;
+		line.diff = sphere.center - line.origin;
 
 		Vector3 start = Transform(Transform(line.origin, viewProjectionMatrix), viewportMatrix);
 		Vector3 end = Transform(Transform(line.origin + line.diff, viewProjectionMatrix), viewportMatrix);
@@ -133,7 +138,6 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 		DrawGrid(viewProjectionMatrix, viewportMatrix, 2.0f, 10);
 		DrawSphere(sphere, viewProjectionMatrix, viewportMatrix, ball.color);
 		Novice::DrawLine(int(start.x), int(start.y), int(end.x), int(end.y), WHITE);
-		
 
 		///
 		/// ↑描画処理ここまで
