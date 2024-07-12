@@ -5,45 +5,16 @@
 #include "algorithm"
 #include "imgui.h"
 #include <Novice.h>
-#define DELTA_TIME (1.0f / 60.0f)
 
 const char kWindowTitle[] = "LE2B_20_ハギワラ_ヒビキ";
 
-struct Spring {
-	Vector3 anchor;
-	float naturalLength;
-	float stiffness;
-	float dampingCoefficient;
-};
+void CircularMotion(Vector3& p, Vector3& c,const float& r, float& angularVelocity, float& angle) {
 
-struct Ball {
-	Vector3 position;
-	Vector3 velocity;
-	Vector3 acceleration;
-	float mass;
-	float radius;
-	unsigned int color;
-};
+	angle += angularVelocity * DELTA_TIME;
 
-void SpringMove(Spring& spring, Ball& ball, const Vector3& Gravity) {
-	Vector3 diff = ball.position - spring.anchor;
-	float length = Length(diff);
-	if (length != 0.0f) {
-		Vector3 direction = Normalize(diff);
-		Vector3 restPosition = spring.anchor + direction * spring.naturalLength;
-		Vector3 displacement = length * (ball.position - restPosition);
-		Vector3 restoringForce = -spring.stiffness * displacement;
-		Vector3 dampringForce = -spring.dampingCoefficient * ball.velocity;
-		Vector3 force = restoringForce + dampringForce;
-		ball.acceleration = force / ball.mass;
-	}
-	// 重力加速度を加算
-	ball.acceleration += Gravity;
-
-	// 加速度も速度もどちらも秒を基準にした値である
-	// それが、1/60秒(deltaTime)適用されたと考える
-	ball.velocity += ball.acceleration * DELTA_TIME;
-	ball.position += ball.velocity * DELTA_TIME;
+	p.x = c.x + std::cos(angle) * r;
+	p.y = c.y + std::sin(angle) * r;
+	p.z = c.z;
 }
 
 // Windowsアプリでのエントリーポイント(main関数)
@@ -60,29 +31,16 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 	const int kWindowHeight = 720;
 	Vector2Int ClickPosition = {};
 
-	Spring spring{};
-	spring.anchor = {0.0f, 1.0f, 0.0f};
-	spring.naturalLength = 0.7f;
-	spring.stiffness = 100.0f;
-	spring.dampingCoefficient = 2.0f;
-
-	Ball ball{};
-	ball.position = {0.8f, 0.2f, 0.0f};
-	ball.mass = 2.0f;
-	ball.radius = 0.05f;
-	ball.color = BLUE;
-
-	Sphere sphere;
-	sphere.center = ball.position;
-	sphere.radius = ball.radius;
-
-	Line line{};
-	line.origin = {0.0f, 2.0f, 0.0f};
-	line.diff = sphere.center;
-
-	const Vector3 kGravity{0.0f, -9.8f, 0.0f};
-
 	bool isStart = false;
+
+	Sphere sphere{};
+	sphere.center = {0.8f, 0.0f, 0.0f};
+	sphere.radius = 0.05f;
+
+	Vector3 center = {0.0f, 0.0f, 0.0f};
+
+	float angularVelocity = 3.14f;
+	float angle = 0.0f;
 
 	// キー入力結果を受け取る箱
 	char keys[256] = {0};
@@ -111,15 +69,8 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 		CameraMove(cameraRotate, cameraTranslate, ClickPosition, keys, preKeys);
 
 		if (isStart) {
-			SpringMove(spring, ball, kGravity);
-		};
-
-		sphere.center = ball.position;
-
-		line.diff = sphere.center - line.origin;
-
-		Vector3 start = Transform(Transform(line.origin, viewProjectionMatrix), viewportMatrix);
-		Vector3 end = Transform(Transform(line.origin + line.diff, viewProjectionMatrix), viewportMatrix);
+			CircularMotion(sphere.center, center, 0.8f, angularVelocity, angle);
+		}
 
 		///
 		/// ↑更新処理ここまで
@@ -136,8 +87,7 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 		ImGui::End();
 
 		DrawGrid(viewProjectionMatrix, viewportMatrix, 2.0f, 10);
-		DrawSphere(sphere, viewProjectionMatrix, viewportMatrix, ball.color);
-		Novice::DrawLine(int(start.x), int(start.y), int(end.x), int(end.y), WHITE);
+		DrawSphere(sphere, viewProjectionMatrix, viewportMatrix, WHITE);
 
 		///
 		/// ↑描画処理ここまで

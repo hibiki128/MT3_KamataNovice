@@ -1,10 +1,11 @@
 #pragma once
-#define NOMINMAX
+#define NOMINMAX 
+#define DELTA_TIME (1.0f / 60.0f)
+#include "cmath"
 #include "Matrix/MyMath.h"
+#include "numbers"
 #include "Vector2.h"
 #include "Vector3.h"
-#include "cmath"
-#include "numbers"
 #include <Novice.h>
 
 struct Line {
@@ -45,6 +46,22 @@ struct OBB {
 	Vector3 center;          //!< 中心点
 	Vector3 orientations[3]; //!< 座標軸。正規化・直行必須
 	Vector3 size;            //!< 座標軸方向の長さの半分。中心から面までの距離
+};
+
+struct Spring {
+	Vector3 anchor;
+	float naturalLength;
+	float stiffness;
+	float dampingCoefficient;
+};
+
+struct Ball {
+	Vector3 position;
+	Vector3 velocity;
+	Vector3 acceleration;
+	float mass;
+	float radius;
+	unsigned int color;
 };
 
 // グリッド描画
@@ -118,3 +135,6 @@ bool IsCollision(const OBB& obb, const Sphere& sphere, const Matrix4x4& rotateMa
 
 // OBBと線の衝突判定
 bool IsCollision(const OBB& obb, const Segment& segment, const Matrix4x4& rotateMatrix);
+
+// ばねの動き
+void SpringMove(Spring& spring, Ball& ball, const Vector3& Gravity);

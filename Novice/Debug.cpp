@@ -576,3 +576,23 @@ AABB ConvertOBBToAABB(const OBB& obb) {
 	return aabb;
 }
 
+void SpringMove(Spring& spring, Ball& ball, const Vector3& Gravity) {
+	Vector3 diff = ball.position - spring.anchor;
+	float length = Length(diff);
+	if (length != 0.0f) {
+		Vector3 direction = Normalize(diff);
+		Vector3 restPosition = spring.anchor + direction * spring.naturalLength;
+		Vector3 displacement = length * (ball.position - restPosition);
+		Vector3 restoringForce = -spring.stiffness * displacement;
+		Vector3 dampringForce = -spring.dampingCoefficient * ball.velocity;
+		Vector3 force = restoringForce + dampringForce;
+		ball.acceleration = force / ball.mass;
+	}
+	// 重力加速度を加算
+	ball.acceleration += Gravity;
+
+	// 加速度も速度もどちらも秒を基準にした値である
+	// それが、1/60秒(deltaTime)適用されたと考える
+	ball.velocity += ball.acceleration * DELTA_TIME;
+	ball.position += ball.velocity * DELTA_TIME;
+}
