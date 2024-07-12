@@ -138,3 +138,6 @@ bool IsCollision(const OBB& obb, const Segment& segment, const Matrix4x4& rotate
 
 // ばねの動き
 void SpringMove(Spring& spring, Ball& ball, const Vector3& Gravity);
+
+// 円運動
+void CircularMotion(Vector3& p, Vector3& c, const float& r, float& angularVelocity, float& angle);

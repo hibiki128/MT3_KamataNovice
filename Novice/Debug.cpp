@@ -576,6 +576,7 @@ AABB ConvertOBBToAABB(const OBB& obb) {
 	return aabb;
 }
 
+// ばねの動き
 void SpringMove(Spring& spring, Ball& ball, const Vector3& Gravity) {
 	Vector3 diff = ball.position - spring.anchor;
 	float length = Length(diff);
@@ -595,4 +596,14 @@ void SpringMove(Spring& spring, Ball& ball, const Vector3& Gravity) {
 	// それが、1/60秒(deltaTime)適用されたと考える
 	ball.velocity += ball.acceleration * DELTA_TIME;
 	ball.position += ball.velocity * DELTA_TIME;
+}
+
+// 円運動
+void CircularMotion(Vector3& p, Vector3& c, const float& r, float& angularVelocity, float& angle) {
+
+	angle += angularVelocity * DELTA_TIME;
+
+	p.x = c.x + std::cos(angle) * r;
+	p.y = c.y + std::sin(angle) * r;
+	p.z = c.z;
 }

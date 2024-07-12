@@ -8,14 +8,23 @@
 
 const char kWindowTitle[] = "LE2B_20_ハギワラ_ヒビキ";
 
-void CircularMotion(Vector3& p, Vector3& c,const float& r, float& angularVelocity, float& angle) {
+struct Pendulum {
+	Vector3 anchor;
+	float length;
+	float angle;
+	float angularVelocity;
+	float angularAcceleration;
+};
 
-	angle += angularVelocity * DELTA_TIME;
-
-	p.x = c.x + std::cos(angle) * r;
-	p.y = c.y + std::sin(angle) * r;
-	p.z = c.z;
-}
+void PendulumMovement(Pendulum& pendulum, Vector3& p) {
+	pendulum.angularAcceleration = -(9.8f / pendulum.length) * std::sin(pendulum.angle);
+	pendulum.angularVelocity += pendulum.angularAcceleration * DELTA_TIME;
+	pendulum.angle += pendulum.angularVelocity * DELTA_TIME;
+	// pは振り子の先端の位置。取り付けたいものを取り付ければいい
+	p.x = pendulum.anchor.x + std::sin(pendulum.angle) * pendulum.length;
+	p.y = pendulum.anchor.y - std::cos(pendulum.angle) * pendulum.length;
+	p.z = pendulum.anchor.z;
+};
 
 // Windowsアプリでのエントリーポイント(main関数)
 int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
@@ -33,14 +42,20 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 
 	bool isStart = false;
 
+	Pendulum pendulum;
+	pendulum.anchor = {0.0f, 1.0f, 0.0f};
+	pendulum.length = 0.8f;
+	pendulum.angle = 0.7f;
+	pendulum.angularVelocity = 0.0f;
+	pendulum.angularAcceleration = 0.0f;
+
 	Sphere sphere{};
-	sphere.center = {0.8f, 0.0f, 0.0f};
+	sphere.center = {0.516f, 0.388f, 0.0f};
 	sphere.radius = 0.05f;
 
-	Vector3 center = {0.0f, 0.0f, 0.0f};
-
-	float angularVelocity = 3.14f;
-	float angle = 0.0f;
+	Line line{};
+	line.origin = {0.0f, 4.0f, 0.0f};
+	line.diff = sphere.center;
 
 	// キー入力結果を受け取る箱
 	char keys[256] = {0};
@@ -69,8 +84,13 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 		CameraMove(cameraRotate, cameraTranslate, ClickPosition, keys, preKeys);
 
 		if (isStart) {
-			CircularMotion(sphere.center, center, 0.8f, angularVelocity, angle);
+			PendulumMovement(pendulum, sphere.center);
 		}
+
+		Vector3 start = Transform(Transform(line.origin, viewportMatrix),viewProjectionMatrix));
+		Vector3 end = Transform(Transform(line.origin + line.diff, viewportMatrix ), viewProjectionMatrix);
+
+		line.diff = sphere.center - line.origin;
 
 		///
 		/// ↑更新処理ここまで
@@ -84,10 +104,12 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 		if (ImGui::Button("Start")) {
 			isStart = !isStart;
 		}
+		ImGui::DragFloat3("center", &sphere.center.x, 0.01f);
 		ImGui::End();
 
 		DrawGrid(viewProjectionMatrix, viewportMatrix, 2.0f, 10);
 		DrawSphere(sphere, viewProjectionMatrix, viewportMatrix, WHITE);
+		Novice::DrawLine(int(start.x), int(start.y), int(end.x), int(end.y), WHITE);
 
 		///
 		/// ↑描画処理ここまで
