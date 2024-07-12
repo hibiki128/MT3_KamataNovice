@@ -73,6 +73,10 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 	sphere.center = ball.position;
 	sphere.radius = ball.radius;
 
+	Line line{};
+	line.origin = {0.0f, 0.0f, 0.0f};
+	line.diff = sphere.center;
+
 	bool isStart = false;
 
 	// キー入力結果を受け取る箱
@@ -104,8 +108,13 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 		if (isStart) {
 			SpringMove(spring, ball);
 		};
-
+		
 		sphere.center = ball.position;
+
+		line.diff = sphere.center;
+
+		Vector3 start = Transform(Transform(line.origin, viewProjectionMatrix), viewportMatrix);
+		Vector3 end = Transform(Transform(line.origin + line.diff, viewProjectionMatrix), viewportMatrix);
 
 		///
 		/// ↑更新処理ここまで
@@ -119,12 +128,11 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 		if (ImGui::Button("Start")) {
 			isStart = !isStart;
 		}
-		ImGui::DragFloat3("sphere center", &sphere.center.x, 0.1f);
-		ImGui::Text("start %d", isStart);
 		ImGui::End();
 
 		DrawGrid(viewProjectionMatrix, viewportMatrix, 2.0f, 10);
 		DrawSphere(sphere, viewProjectionMatrix, viewportMatrix, ball.color);
+		Novice::DrawLine(int(start.x), int(start.y), int(end.x), int(end.y), WHITE);
 		
 
 		///
