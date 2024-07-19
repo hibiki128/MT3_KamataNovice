@@ -64,6 +64,14 @@ struct Ball {
 	unsigned int color;
 };
 
+struct Pendulum {
+	Vector3 anchor;
+	float length;
+	float angle;
+	float angularVelocity;
+	float angularAcceleration;
+};
+
 // グリッド描画
 void DrawGrid(const Matrix4x4& viewProjectionMatrix, const Matrix4x4& viewportMatrix, const float GridHalfWidth, const uint32_t Subdivision);
 
@@ -141,3 +149,6 @@ void SpringMove(Spring& spring, Ball& ball, const Vector3& Gravity);
 
 // 円運動
 void CircularMotion(Vector3& p, Vector3& c, const float& r, float& angularVelocity, float& angle);
+
+// 振り子運動
+void PendulumMovement(Pendulum& pendulum, Vector3& p);

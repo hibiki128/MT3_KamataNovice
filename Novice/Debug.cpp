@@ -2,8 +2,8 @@
 #include "imgui.h"
 #include <algorithm>
 
-void DrawGrid(const Matrix4x4& viewProjectionMatrix, const Matrix4x4& viewportMatrix,const float GridHalfWidth,const uint32_t Subdivision) {
-	const float kGridHalfWidth = GridHalfWidth;                            // グリッドの半分の幅
+void DrawGrid(const Matrix4x4& viewProjectionMatrix, const Matrix4x4& viewportMatrix, const float GridHalfWidth, const uint32_t Subdivision) {
+	const float kGridHalfWidth = GridHalfWidth;                             // グリッドの半分の幅
 	const uint32_t kSubdivision = Subdivision;                              // 分割数
 	const float kGridEvery = (kGridHalfWidth * 2.0f) / float(kSubdivision); // 1つの長さ
 
@@ -295,13 +295,13 @@ Vector3 Perpendicular(const Vector3& vector) {
 
 void CameraMove(Vector3& cameraRotate, Vector3& cameraTranslate, Vector2Int& clickPosition, char* keys, char* preKeys) {
 	// カーソルを動かすときの感度
-	const float mouseSensitivity = 0.003f;
+	float mouseSensitivity = 0.003f;
 	// カメラの移動速度
-	const float moveSpeed = 0.005f;
+	float moveSpeed = 0.005f;
 
 	// 各フラグ
 	static bool isLeftClicked = false;
-	static bool isWheelClicked = false;
+	static bool isRightClicked = false;
 	static bool isDebugCamera = false;
 
 	// 回転を考慮する
@@ -322,11 +322,11 @@ void CameraMove(Vector3& cameraRotate, Vector3& cameraTranslate, Vector2Int& cli
 
 		/// ========カメラ操作========
 		// カメラの回転を更新する
-		if (Novice::IsPressMouse(0) == 1) {
-			if (!isLeftClicked) {
+		if (Novice::IsPressMouse(1) == 1) {
+			if (!isRightClicked) {
 				// マウスがクリックされたときに現在のマウス位置を保存する
 				Novice::GetMousePosition(&clickPosition.x, &clickPosition.y);
-				isLeftClicked = true;
+				isRightClicked = true;
 			} else {
 				// マウスがクリックされている間はカメラの回転を更新する
 				Vector2Int currentMousePos;
@@ -343,15 +343,15 @@ void CameraMove(Vector3& cameraRotate, Vector3& cameraTranslate, Vector2Int& cli
 			}
 		} else {
 			// マウスがクリックされていない場合はフラグをリセットする
-			isLeftClicked = false;
+			isRightClicked = false;
 		}
 
 		// カメラの位置を更新する
-		if (Novice::IsPressMouse(2) == 1) {
-			if (!isWheelClicked) {
+		if (Novice::IsPressMouse(0) == 1) {
+			if (!isLeftClicked) {
 				// マウスがクリックされたときに現在のマウス位置を保存する
 				Novice::GetMousePosition(&clickPosition.x, &clickPosition.y);
-				isWheelClicked = true;
+				isLeftClicked = true;
 			} else {
 				// マウスがクリックされている間はカメラの位置を更新する
 				Vector2Int currentMousePos;
@@ -368,7 +368,7 @@ void CameraMove(Vector3& cameraRotate, Vector3& cameraTranslate, Vector2Int& cli
 			}
 		} else {
 			// マウスがクリックされていない場合はフラグをリセットする
-			isWheelClicked = false;
+			isLeftClicked = false;
 		}
 
 		// マウスホイールの移動量を取得する
@@ -378,8 +378,18 @@ void CameraMove(Vector3& cameraRotate, Vector3& cameraTranslate, Vector2Int& cli
 		cameraTranslate += rotatedZ * float(wheelDelta) * moveSpeed;
 		/// =====================
 	}
-	ImGui::Begin("camera explanation");
-	ImGui::Text("SPACE : DebugCamera on:off\nDebugCamera = %d (0 = false , 1 = true)\nPressingMouseLeftbutton : moveCameraRotate\nPressingMouseWheelbutton : moveCameraTranslate", isDebugCamera);
+	ImGui::Begin("Camera");
+	if (ImGui::TreeNode("Camera Explanation")) {
+		ImGui::Text(
+		    "SPACE : DebugCamera on:off\nDebugCamera = %d (0 = false , 1 = true)\nMouseRightClick : moveCameraRotate\nMouseLeftClick : moveCameraTranslate.xy\nMouseWheel : moveCameraTranslate.z",
+		    isDebugCamera);
+		ImGui::TreePop();
+	}
+	if (ImGui::TreeNode("Camera Value")) {
+		ImGui::DragFloat3("Translate", &cameraTranslate.x, 0.01f);
+		ImGui::DragFloat3("Rotate", &cameraRotate.x, 0.01f);
+		ImGui::TreePop();
+	}
 	ImGui::End();
 }
 
@@ -607,3 +617,14 @@ void CircularMotion(Vector3& p, Vector3& c, const float& r, float& angularVeloci
 	p.y = c.y + std::sin(angle) * r;
 	p.z = c.z;
 }
+
+// 振り子運動
+void PendulumMovement(Pendulum& pendulum, Vector3& p) {
+	pendulum.angularAcceleration = -(9.8f / pendulum.length) * std::sin(pendulum.angle);
+	pendulum.angularVelocity += pendulum.angularAcceleration * DELTA_TIME;
+	pendulum.angle += pendulum.angularVelocity * DELTA_TIME;
+	// pは振り子の先端の位置。取り付けたいものを取り付ければいい
+	p.x = pendulum.anchor.x + std::sin(pendulum.angle) * pendulum.length;
+	p.y = pendulum.anchor.y - std::cos(pendulum.angle) * pendulum.length;
+	p.z = pendulum.anchor.z;
+};
