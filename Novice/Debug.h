@@ -72,11 +72,22 @@ struct Pendulum {
 	float angularAcceleration;
 };
 
+struct ConicalPendulum {
+	Vector3 anchor;        // アンカーポイント。固定された端の位置
+	float length;          // 紐の長さ
+	float halfApexAngle;   // 円錐の直角の半分
+	float angle;           // 現在の角度
+	float angularVelocity; // 角速度ω
+};
+
 // グリッド描画
 void DrawGrid(const Matrix4x4& viewProjectionMatrix, const Matrix4x4& viewportMatrix, const float GridHalfWidth, const uint32_t Subdivision);
 
 // 球描画
 void DrawSphere(const Sphere& sphere, const Matrix4x4& viewProjectionMatrix, const Matrix4x4& viewportMarix, uint32_t color);
+
+// 球描画
+void DrawBall(const Ball& ball, const Matrix4x4& viewProjectionMatrix, const Matrix4x4& viewportMarix, uint32_t color);
 
 // 平面描画
 void DrawPlane(const Plane& plane, const Matrix4x4& viewProjectionMatrix, const Matrix4x4& viewportMatrix, uint32_t color);
@@ -152,3 +163,6 @@ void CircularMotion(Vector3& p, Vector3& c, const float& r, float& angularVeloci
 
 // 振り子運動
 void PendulumMovement(Pendulum& pendulum, Vector3& p);
+
+// 円錐振り子運動
+void ConicalPendulumMove(ConicalPendulum& conicalPendulum, Ball& ball);

@@ -98,6 +98,52 @@ void DrawSphere(const Sphere& sphere, const Matrix4x4& viewProjectionMatrix, con
 	}
 }
 
+void DrawBall(const Ball& ball, const Matrix4x4& viewProjectionMatrix, const Matrix4x4& viewportMarix, uint32_t color) {
+	const uint32_t kSubdivision = 10;                                        // 分割数
+	const float kLonEvery = 2.0f * std::numbers::pi_v<float> / kSubdivision; // 経度分割1つ分の角度
+	const float kLatEvery = std::numbers::pi_v<float> / kSubdivision;        // 緯度分割1つ分の角度
+
+	// 緯度の方向に分割　-π/2 ～ π/2
+	for (uint32_t latIndex = 0; latIndex < kSubdivision; ++latIndex) {
+		float lat = -std::numbers::pi_v<float> / 2.0f + kLatEvery * latIndex; // 現在の緯度
+
+		// 経度の方向に分割 0 ～ 2π
+		for (uint32_t lonIndex = 0; lonIndex < kSubdivision; ++lonIndex) {
+			float lon = lonIndex * kLonEvery; // 現在の経度
+
+			// 現在の点を求める
+			Vector3 start = {
+			    ball.position.x + ball.radius * std::cosf(lat) * std::cosf(lon), ball.position.y + ball.radius * std::sinf(lat), ball.position.z + ball.radius * std::cosf(lat) * std::sinf(lon)};
+
+			// 次の点を求める（経度方向）
+			Vector3 end1 = {
+			    ball.position.x + ball.radius * std::cosf(lat) * std::cosf(lon + kLonEvery),
+			    ball.position.y + ball.radius * std::sinf(lat),
+			    ball.position.z + ball.radius * std::cosf(lat) * std::sinf(lon + kLonEvery),
+			};
+
+			// 次の点を求める（緯度方向）
+			Vector3 end2 = {
+			    ball.position.x + ball.radius * std::cosf(lat + kLatEvery) * std::cosf(lon),
+			    ball.position.y + ball.radius * std::sinf(lat + kLatEvery),
+			    ball.position.z + ball.radius * std::cosf(lat + kLatEvery) * std::sinf(lon),
+			};
+
+			// 座標変換を行う
+			start = Transform(start, viewProjectionMatrix);
+			start = Transform(start, viewportMarix);
+			end1 = Transform(end1, viewProjectionMatrix);
+			end1 = Transform(end1, viewportMarix);
+			end2 = Transform(end2, viewProjectionMatrix);
+			end2 = Transform(end2, viewportMarix);
+
+			// 線を描画
+			Novice::DrawLine(int(start.x), int(start.y), int(end1.x), int(end1.y), color);
+			Novice::DrawLine(int(start.x), int(start.y), int(end2.x), int(end2.y), color);
+		}
+	}
+}
+
 void DrawPlane(const Plane& plane, const Matrix4x4& viewProjectionMatrix, const Matrix4x4& viewportMatrix, uint32_t color) {
 	Vector3 center = plane.distance * plane.normal; // 1
 	Vector3 perpendiculars[4];
@@ -628,3 +674,14 @@ void PendulumMovement(Pendulum& pendulum, Vector3& p) {
 	p.y = pendulum.anchor.y - std::cos(pendulum.angle) * pendulum.length;
 	p.z = pendulum.anchor.z;
 };
+
+// 円錐振り子運動
+void ConicalPendulumMove(ConicalPendulum& conicalPendulum, Ball& ball) {
+	conicalPendulum.angularVelocity = std::sqrt(9.8f / (conicalPendulum.length * std::cos(conicalPendulum.halfApexAngle)));
+	conicalPendulum.angle += conicalPendulum.angularVelocity * DELTA_TIME;
+	float radius = std::sin(conicalPendulum.halfApexAngle) * conicalPendulum.length;
+	float height = std::cos(conicalPendulum.halfApexAngle) * conicalPendulum.length;
+	ball.position.x = conicalPendulum.anchor.x + std::cos(conicalPendulum.angle) * radius;
+	ball.position.y = conicalPendulum.anchor.y - height;
+	ball.position.z = conicalPendulum.anchor.z - std::sin(conicalPendulum.angle) * radius;
+}

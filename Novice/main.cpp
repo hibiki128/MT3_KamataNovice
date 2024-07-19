@@ -5,33 +5,57 @@
 #include "algorithm"
 #include "imgui.h"
 #include <Novice.h>
+#include <cmath>
 
 const char kWindowTitle[] = "LE2B_20_ハギワラ_ヒビキ";
 
-struct ConicalPendulum {
-	Vector3 anchor;         // アンカーポイント。固定された端の位置
-	float length;          // 紐の長さ
-	float halfApexAngle;   // 円錐の直角の半分
-	float angle;           // 現在の角度
-	float angularVelocity; // 角速度ω
+struct Capsule {
+	Segment segment;
+	float radius;
 };
 
-void ConicalPendulumMove(ConicalPendulum& conicalPendulum, Ball& ball) { 
-	conicalPendulum.angularVelocity = std::sqrt(9.8f / (conicalPendulum.length * std::cos(conicalPendulum.halfApexAngle)));
-	conicalPendulum.angle += conicalPendulum.angularVelocity * DELTA_TIME;
-	float radius = std::sin(conicalPendulum.halfApexAngle) * conicalPendulum.length;
-	float height = std::cos(conicalPendulum.halfApexAngle) * conicalPendulum.length;
-	ball.position.x = conicalPendulum.anchor.x + std::cos(conicalPendulum.angle) * radius;
-	ball.position.y = conicalPendulum.anchor.y - height;
-	ball.position.z = conicalPendulum.anchor.z - std::sin(conicalPendulum.angle) * radius;
+Vector3 Reflect(const Vector3& input, const Vector3& normal) {
+	float dotProduct = Dot(input, normal);
+	Vector3 projection = normal * (2.0f * dotProduct);
+	return input - projection;
 }
-    // Windowsアプリでのエントリーポイント(main関数)
-int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 
+bool IsCollision(const Capsule& capsule, const Plane& plane) {
+	Vector3 end1 = capsule.segment.origin;
+	Vector3 end2 = capsule.segment.origin + capsule.segment.diff;
+
+	float distance1 = Dot(end1, plane.normal) - plane.distance;
+	float distance2 = Dot(end2, plane.normal) - plane.distance;
+
+	return (std::abs(distance1) <= capsule.radius || std::abs(distance2) <= capsule.radius);
+}
+
+void ReflectMove(Ball& ball, Plane& plane, float e) {
+	ball.velocity += ball.acceleration * DELTA_TIME;
+	ball.position += ball.velocity * DELTA_TIME;
+
+	Capsule capsule;
+	capsule.segment.origin = ball.position;
+	capsule.segment.diff = ball.velocity * DELTA_TIME;
+	capsule.radius = ball.radius;
+
+	if (IsCollision(capsule, plane)) {
+		Vector3 reflected = Reflect(ball.velocity, plane.normal);
+		Vector3 planeToBall = ball.position - plane.normal * (Dot(ball.position, plane.normal) - plane.distance);
+
+		if (Dot(ball.position - planeToBall, plane.normal) < 0) {
+			ball.position = planeToBall;
+		}
+
+		ball.velocity = reflected * e;
+	}
+}
+
+// Windowsアプリでのエントリーポイント(main関数)
+int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 	// ライブラリの初期化
 	Novice::Initialize(kWindowTitle, 1280, 720);
 
-	// カメラの初期設定
 	Vector3 cameraTranslate{0.0f, 1.9f, -6.49f};
 	Vector3 cameraRotate{0.26f, 0.0f, 0.0f};
 	Vector3 cameraPosition{0.0f, 1.0f, -5.0f};
@@ -40,44 +64,29 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 	Vector2Int ClickPosition = {};
 
 	bool isStart = false;
-	
-	ConicalPendulum conicalPendulum;
-	conicalPendulum.anchor = {0.0f, 1.0f, 0.0f};
-	conicalPendulum.length = 0.8f;
-	conicalPendulum.halfApexAngle = 0.7f;
-	conicalPendulum.angle = 0.0f;
-	conicalPendulum.angularVelocity = 0.0f;
+
+	Plane plane;
+	plane.normal = Normalize({-0.2f, 1.2f, -0.3f});
+	plane.distance = 0.0f;
 
 	Ball ball{};
-	ball.position = {0.8f, 0.5f, 0.0f};
+	ball.position = {0.8f, 1.2f, 0.3f};
+	ball.acceleration = {0.0f, -9.8f, 0.0f};
+	ball.mass = 2.0f;
 	ball.radius = 0.05f;
+	ball.color = WHITE;
 
-	Sphere sphere{};
-	sphere.center = ball.position;
-	sphere.radius = ball.radius;
+	float e = 0.7f;
 
-	Line line{};
-	line.origin = {0.0f, 2.0f, 0.0f};
-	line.diff = sphere.center;
-
-	// キー入力結果を受け取る箱
 	char keys[256] = {0};
 	char preKeys[256] = {0};
 
-	// ウィンドウの×ボタンが押されるまでループ
 	while (Novice::ProcessMessage() == 0) {
-		// フレームの開始
 		Novice::BeginFrame();
 
-		// キー入力を受け取る
 		memcpy(preKeys, keys, 256);
 		Novice::GetHitKeyStateAll(keys);
 
-		///
-		/// ↓更新処理ここから
-		///
-
-		// カメラの計算
 		Matrix4x4 cameraMatrix = MakeAffineMatrix({1.0f, 1.0f, 1.0f}, cameraRotate, cameraPosition + cameraTranslate);
 		Matrix4x4 viewMatrix = Inverse(cameraMatrix);
 		Matrix4x4 projectionMatrix = MakePerspectiveFovMatrix(0.45f, float(kWindowWidth) / float(kWindowHeight), 0.1f, 100.0f);
@@ -87,48 +96,30 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 		CameraMove(cameraRotate, cameraTranslate, ClickPosition, keys, preKeys);
 
 		if (isStart) {
-			ConicalPendulumMove(conicalPendulum, ball);
+			ReflectMove(ball, plane, e);
 		}
-		sphere.center = ball.position;
-		line.diff = sphere.center - line.origin;
-
-		Vector3 start = Transform(Transform(line.origin, viewProjectionMatrix), viewportMatrix);
-		Vector3 end = Transform(Transform(line.origin + line.diff, viewProjectionMatrix), viewportMatrix);
-
-		///
-		/// ↑更新処理ここまで
-		///
-
-		///
-		/// ↓描画処理ここから
-		///
+		if (ball.position.y < -0.6f) {
+			ball.position = {0.8f, 1.2f, 0.3f};
+			ball.velocity = {0.0f, 0.0f, 0.0f};
+		}
 
 		ImGui::Begin("Window");
 		if (ImGui::Button("Start")) {
 			isStart = !isStart;
 		}
-		ImGui::SliderFloat("Length", &conicalPendulum.length, 0.5f, 10);
-		ImGui::SliderFloat("HalfApexAngle", &conicalPendulum.halfApexAngle, 0, 1.5f);
 		ImGui::End();
 
 		DrawGrid(viewProjectionMatrix, viewportMatrix, 2.0f, 10);
-		DrawSphere(sphere, viewProjectionMatrix, viewportMatrix, WHITE);
-		Novice::DrawLine(int(start.x), int(start.y), int(end.x), int(end.y), WHITE);
+		DrawPlane(plane, viewProjectionMatrix, viewportMatrix, WHITE);
+		DrawBall(ball, viewProjectionMatrix, viewportMatrix, ball.color);
 
-		///
-		/// ↑描画処理ここまで
-		///
-
-		// フレームの終了
 		Novice::EndFrame();
 
-		// ESCキーが押されたらループを抜ける
 		if (preKeys[DIK_ESCAPE] == 0 && keys[DIK_ESCAPE] != 0) {
 			break;
 		}
 	}
 
-	// ライブラリの終了
 	Novice::Finalize();
 	return 0;
 }
