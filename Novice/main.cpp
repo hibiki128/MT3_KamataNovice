@@ -8,24 +8,31 @@
 
 const char kWindowTitle[] = "LE2B_20_ハギワラ_ヒビキ";
 
-struct ConicalPendulum {
-	Vector3 anchor;         // アンカーポイント。固定された端の位置
-	float length;          // 紐の長さ
-	float halfApexAngle;   // 円錐の直角の半分
-	float angle;           // 現在の角度
-	float angularVelocity; // 角速度ω
-};
+Vector3 Reflect(const Vector3& input, const Vector3& normal) {
+	// i・n を計算
+	float dotProduct = Dot(input, normal);
 
-void ConicalPendulumMove(ConicalPendulum& conicalPendulum, Ball& ball) { 
-	conicalPendulum.angularVelocity = std::sqrt(9.8f / (conicalPendulum.length * std::cos(conicalPendulum.halfApexAngle)));
-	conicalPendulum.angle += conicalPendulum.angularVelocity * DELTA_TIME;
-	float radius = std::sin(conicalPendulum.halfApexAngle) * conicalPendulum.length;
-	float height = std::cos(conicalPendulum.halfApexAngle) * conicalPendulum.length;
-	ball.position.x = conicalPendulum.anchor.x + std::cos(conicalPendulum.angle) * radius;
-	ball.position.y = conicalPendulum.anchor.y - height;
-	ball.position.z = conicalPendulum.anchor.z - std::sin(conicalPendulum.angle) * radius;
+	// 2(i・n)n を計算
+	Vector3 projection = normal * (2.0f * dotProduct);
+
+	// r = i - 2(i・n)n
+	Vector3 reflection = input - projection;
+
+	return reflection;
 }
-    // Windowsアプリでのエントリーポイント(main関数)
+
+void ReflectMove(Ball& ball, Plane& plane, const float& e) {
+	ball.velocity += ball.acceleration * DELTA_TIME;
+	ball.position += ball.velocity * DELTA_TIME;
+	if (IsCollision(Sphere{ball.position, ball.radius}, plane)) {
+		Vector3 reflected = Reflect(ball.velocity, plane.normal);
+		Vector3 projectToNormal = Project(reflected, plane.normal);
+		Vector3 movingDirection = reflected - projectToNormal;
+		ball.velocity = projectToNormal * e + movingDirection;
+	}
+}
+
+// Windowsアプリでのエントリーポイント(main関数)
 int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 
 	// ライブラリの初期化
@@ -40,25 +47,17 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 	Vector2Int ClickPosition = {};
 
 	bool isStart = false;
-	
-	ConicalPendulum conicalPendulum;
-	conicalPendulum.anchor = {0.0f, 1.0f, 0.0f};
-	conicalPendulum.length = 0.8f;
-	conicalPendulum.halfApexAngle = 0.7f;
-	conicalPendulum.angle = 0.0f;
-	conicalPendulum.angularVelocity = 0.0f;
+
+	Plane plane;
+	plane.normal = Normalize({-0.2f, 0.9f, -0.3f});
+	plane.distance = 0.0f;
 
 	Ball ball{};
-	ball.position = {0.8f, 0.5f, 0.0f};
+	ball.position = {0.8f, 1.2f, 0.3f};
+	ball.acceleration = {0.0f, -9.8f, 0.0f};
+	ball.mass = 2.0f;
 	ball.radius = 0.05f;
-
-	Sphere sphere{};
-	sphere.center = ball.position;
-	sphere.radius = ball.radius;
-
-	Line line{};
-	line.origin = {0.0f, 2.0f, 0.0f};
-	line.diff = sphere.center;
+	ball.color = WHITE;
 
 	// キー入力結果を受け取る箱
 	char keys[256] = {0};
@@ -87,13 +86,12 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 		CameraMove(cameraRotate, cameraTranslate, ClickPosition, keys, preKeys);
 
 		if (isStart) {
-			ConicalPendulumMove(conicalPendulum, ball);
+			ReflectMove(ball, plane, 0.7f);
+		} 
+		if (ball.position.y < -3) {
+			ball.position = {0.8f, 1.2f, 0.3f};
+			ball.velocity = {0.0f, 0.0f, 0.0f};
 		}
-		sphere.center = ball.position;
-		line.diff = sphere.center - line.origin;
-
-		Vector3 start = Transform(Transform(line.origin, viewProjectionMatrix), viewportMatrix);
-		Vector3 end = Transform(Transform(line.origin + line.diff, viewProjectionMatrix), viewportMatrix);
 
 		///
 		/// ↑更新処理ここまで
@@ -107,13 +105,12 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 		if (ImGui::Button("Start")) {
 			isStart = !isStart;
 		}
-		ImGui::SliderFloat("Length", &conicalPendulum.length, 0.5f, 10);
-		ImGui::SliderFloat("HalfApexAngle", &conicalPendulum.halfApexAngle, 0, 1.5f);
+		ImGui::Text("isStart : %d", isStart);
 		ImGui::End();
 
 		DrawGrid(viewProjectionMatrix, viewportMatrix, 2.0f, 10);
-		DrawSphere(sphere, viewProjectionMatrix, viewportMatrix, WHITE);
-		Novice::DrawLine(int(start.x), int(start.y), int(end.x), int(end.y), WHITE);
+		DrawPlane(plane, viewProjectionMatrix, viewportMatrix, WHITE);
+		DrawBall(ball, viewProjectionMatrix, viewportMatrix, ball.color);
 
 		///
 		/// ↑描画処理ここまで
