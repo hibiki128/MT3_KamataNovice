@@ -2,8 +2,8 @@
 #include "imgui.h"
 #include <algorithm>
 
-void DrawGrid(const Matrix4x4& viewProjectionMatrix, const Matrix4x4& viewportMatrix,const float GridHalfWidth,const uint32_t Subdivision) {
-	const float kGridHalfWidth = GridHalfWidth;                            // グリッドの半分の幅
+void DrawGrid(const Matrix4x4& viewProjectionMatrix, const Matrix4x4& viewportMatrix, const float GridHalfWidth, const uint32_t Subdivision) {
+	const float kGridHalfWidth = GridHalfWidth;                             // グリッドの半分の幅
 	const uint32_t kSubdivision = Subdivision;                              // 分割数
 	const float kGridEvery = (kGridHalfWidth * 2.0f) / float(kSubdivision); // 1つの長さ
 
@@ -169,12 +169,66 @@ void DrawAABB(const AABB& aabb, const Matrix4x4& viewProjectionMatrix, const Mat
 	DrawLineXY(points[3], points[7], color);
 }
 
+void DrawBezier(const Vector3& controlPoint0, const Vector3& controlPoint1, const Vector3& controlPoint2, const Matrix4x4& viewProjectionMatrix, const Matrix4x4& viewportMatrix, uint32_t color) {
+	const int numSegments = 100; // 曲線を描画するセグメント数
+	Vector3 prevPoint = controlPoint0;
+
+	for (int i = 1; i <= numSegments; ++i) {
+		float t = static_cast<float>(i) / numSegments;
+
+		// ベジェ曲線の現在の点を計算
+		Vector3 p0 = Lerp(controlPoint0, controlPoint1, t);
+		Vector3 p1 = Lerp(controlPoint1, controlPoint2, t);
+		Vector3 currentPoint = Lerp(p0, p1, t);
+
+		// 変換行列を適用
+		Vector3 transformedPrevPoint = Transform(prevPoint, viewProjectionMatrix);
+		transformedPrevPoint = Transform(transformedPrevPoint, viewportMatrix);
+
+		Vector3 transformedCurrentPoint = Transform(currentPoint, viewProjectionMatrix);
+		transformedCurrentPoint = Transform(transformedCurrentPoint, viewportMatrix);
+
+		// ラインを描画
+		Novice::DrawLine(
+		    static_cast<int>(transformedPrevPoint.x), static_cast<int>(transformedPrevPoint.y), static_cast<int>(transformedCurrentPoint.x), static_cast<int>(transformedCurrentPoint.y), color);
+
+		prevPoint = currentPoint;
+	}
+
+	// 制御点を描画
+	Sphere sphere;
+	sphere.radius = 0.01f;
+
+	sphere.center = controlPoint0;
+	DrawSphere(sphere, viewProjectionMatrix, viewportMatrix, BLACK);
+
+	sphere.center = controlPoint1;
+	DrawSphere(sphere, viewProjectionMatrix, viewportMatrix, BLACK);
+
+	sphere.center = controlPoint2;
+	DrawSphere(sphere, viewProjectionMatrix, viewportMatrix, BLACK);
+}
+
+// 線を描画する関数
+void DrawLineBetweenSpheres(const Vector3& point1, const Vector3& point2, const Matrix4x4& viewProjectionMatrix, const Matrix4x4& viewportMatrix, uint32_t color) {
+	// 3D座標を2Dスクリーン座標に変換
+	Vector3 screenPoint1 = Transform(point1, viewProjectionMatrix);
+	screenPoint1 = Transform(screenPoint1, viewportMatrix);
+	Vector3 screenPoint2 = Transform(point2, viewProjectionMatrix);
+	screenPoint2 = Transform(screenPoint2, viewportMatrix);
+
+	// 線を描画
+	Novice::DrawLine(int(screenPoint1.x), int(screenPoint1.y), int(screenPoint2.x), int(screenPoint2.y), color);
+}
+
 Vector3 Project(const Vector3& v1, const Vector3& v2) {
 	float dot = Dot(v1, v2);
 	float lenSquared = LengthSquared(v2);
 	float scalar = dot / lenSquared;
 	return {v2.x * scalar, v2.y * scalar, v2.z * scalar};
 }
+
+Vector3 Lerp(const Vector3& v1, const Vector3& v2, float t) { return Vector3(v1.x + t * (v2.x - v1.x), v1.y + t * (v2.y - v1.y), v1.z + t * (v2.z - v1.z)); }
 
 void DrawOBB(const OBB& obb, const Matrix4x4& viewProjectionMatrix, const Matrix4x4& viewportMatrix, uint32_t color) {
 	Vector3 halfSizeX = obb.orientations[0] * obb.size.x;
@@ -241,13 +295,13 @@ Vector3 Perpendicular(const Vector3& vector) {
 
 void CameraMove(Vector3& cameraRotate, Vector3& cameraTranslate, Vector2Int& clickPosition, char* keys, char* preKeys) {
 	// カーソルを動かすときの感度
-	const float mouseSensitivity = 0.003f;
+	float mouseSensitivity = 0.003f;
 	// カメラの移動速度
-	const float moveSpeed = 0.005f;
+	float moveSpeed = 0.005f;
 
 	// 各フラグ
 	static bool isLeftClicked = false;
-	static bool isWheelClicked = false;
+	static bool isRightClicked = false;
 	static bool isDebugCamera = false;
 
 	// 回転を考慮する
@@ -268,11 +322,11 @@ void CameraMove(Vector3& cameraRotate, Vector3& cameraTranslate, Vector2Int& cli
 
 		/// ========カメラ操作========
 		// カメラの回転を更新する
-		if (Novice::IsPressMouse(0) == 1) {
-			if (!isLeftClicked) {
+		if (Novice::IsPressMouse(1) == 1) {
+			if (!isRightClicked) {
 				// マウスがクリックされたときに現在のマウス位置を保存する
 				Novice::GetMousePosition(&clickPosition.x, &clickPosition.y);
-				isLeftClicked = true;
+				isRightClicked = true;
 			} else {
 				// マウスがクリックされている間はカメラの回転を更新する
 				Vector2Int currentMousePos;
@@ -289,15 +343,15 @@ void CameraMove(Vector3& cameraRotate, Vector3& cameraTranslate, Vector2Int& cli
 			}
 		} else {
 			// マウスがクリックされていない場合はフラグをリセットする
-			isLeftClicked = false;
+			isRightClicked = false;
 		}
 
 		// カメラの位置を更新する
-		if (Novice::IsPressMouse(2) == 1) {
-			if (!isWheelClicked) {
+		if (Novice::IsPressMouse(0) == 1) {
+			if (!isLeftClicked) {
 				// マウスがクリックされたときに現在のマウス位置を保存する
 				Novice::GetMousePosition(&clickPosition.x, &clickPosition.y);
-				isWheelClicked = true;
+				isLeftClicked = true;
 			} else {
 				// マウスがクリックされている間はカメラの位置を更新する
 				Vector2Int currentMousePos;
@@ -314,7 +368,7 @@ void CameraMove(Vector3& cameraRotate, Vector3& cameraTranslate, Vector2Int& cli
 			}
 		} else {
 			// マウスがクリックされていない場合はフラグをリセットする
-			isWheelClicked = false;
+			isLeftClicked = false;
 		}
 
 		// マウスホイールの移動量を取得する
@@ -324,8 +378,18 @@ void CameraMove(Vector3& cameraRotate, Vector3& cameraTranslate, Vector2Int& cli
 		cameraTranslate += rotatedZ * float(wheelDelta) * moveSpeed;
 		/// =====================
 	}
-	ImGui::Begin("camera explanation");
-	ImGui::Text("SPACE : DebugCamera on:off\nDebugCamera = %d (0 = false , 1 = true)\nPressingMouseLeftbutton : moveCameraRotate\nPressingMouseWheelbutton : moveCameraTranslate", isDebugCamera);
+	ImGui::Begin("Camera");
+	if (ImGui::TreeNode("Camera Explanation")) {
+		ImGui::Text(
+		    "SPACE : DebugCamera on:off\nDebugCamera = %d (0 = false , 1 = true)\nMouseRightClick : moveCameraRotate\nMouseLeftClick : moveCameraTranslate.xy\nMouseWheel : moveCameraTranslate.z",
+		    isDebugCamera);
+		ImGui::TreePop();
+	}
+	if (ImGui::TreeNode("Camera Value")) {
+		ImGui::DragFloat3("Translate", &cameraTranslate.x, 0.01f);
+		ImGui::DragFloat3("Rotate", &cameraRotate.x, 0.01f);
+		ImGui::TreePop();
+	}
 	ImGui::End();
 }
 
@@ -522,3 +586,45 @@ AABB ConvertOBBToAABB(const OBB& obb) {
 	return aabb;
 }
 
+// ばねの動き
+void SpringMove(Spring& spring, Ball& ball, const Vector3& Gravity) {
+	Vector3 diff = ball.position - spring.anchor;
+	float length = Length(diff);
+	if (length != 0.0f) {
+		Vector3 direction = Normalize(diff);
+		Vector3 restPosition = spring.anchor + direction * spring.naturalLength;
+		Vector3 displacement = length * (ball.position - restPosition);
+		Vector3 restoringForce = -spring.stiffness * displacement;
+		Vector3 dampringForce = -spring.dampingCoefficient * ball.velocity;
+		Vector3 force = restoringForce + dampringForce;
+		ball.acceleration = force / ball.mass;
+	}
+	// 重力加速度を加算
+	ball.acceleration += Gravity;
+
+	// 加速度も速度もどちらも秒を基準にした値である
+	// それが、1/60秒(deltaTime)適用されたと考える
+	ball.velocity += ball.acceleration * DELTA_TIME;
+	ball.position += ball.velocity * DELTA_TIME;
+}
+
+// 円運動
+void CircularMotion(Vector3& p, Vector3& c, const float& r, float& angularVelocity, float& angle) {
+
+	angle += angularVelocity * DELTA_TIME;
+
+	p.x = c.x + std::cos(angle) * r;
+	p.y = c.y + std::sin(angle) * r;
+	p.z = c.z;
+}
+
+// 振り子運動
+void PendulumMovement(Pendulum& pendulum, Vector3& p) {
+	pendulum.angularAcceleration = -(9.8f / pendulum.length) * std::sin(pendulum.angle);
+	pendulum.angularVelocity += pendulum.angularAcceleration * DELTA_TIME;
+	pendulum.angle += pendulum.angularVelocity * DELTA_TIME;
+	// pは振り子の先端の位置。取り付けたいものを取り付ければいい
+	p.x = pendulum.anchor.x + std::sin(pendulum.angle) * pendulum.length;
+	p.y = pendulum.anchor.y - std::cos(pendulum.angle) * pendulum.length;
+	p.z = pendulum.anchor.z;
+};
